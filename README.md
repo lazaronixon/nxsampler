@@ -3,7 +3,7 @@
 Renders a VST3 instrument (Kontakt or any other) one note at a time and saves one WAV
 file per key, ready to load into a hardware keyboard's sampler.
 
-<img width="781" height="903" alt="Screenshot 2026-10-03 at 05 00 02" src="https://github.com/user-attachments/assets/409d92e4-5489-4e3d-9531-b415cf6cb70a" />
+<img width="781" height="903" alt="image" src="https://github.com/user-attachments/assets/fe9086e2-c3a1-4999-b8d6-6c93c641b8e2" />
 
 
 ## Download
