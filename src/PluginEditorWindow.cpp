@@ -5,6 +5,19 @@
 
 using namespace Steinberg;
 
+namespace {
+
+// The native handle a QWidget's winId() returns on each platform.
+#if defined(Q_OS_MACOS)
+const FIDString kPlatformType = kPlatformTypeNSView;
+#elif defined(Q_OS_WIN)
+const FIDString kPlatformType = kPlatformTypeHWND;
+#else
+const FIDString kPlatformType = kPlatformTypeX11EmbedWindowID;
+#endif
+
+} // namespace
+
 PluginEditorWindow* PluginEditorWindow::create(Vst::IEditController* controller,
                                                const QString& title, QString* error)
 {
@@ -16,10 +29,10 @@ PluginEditorWindow* PluginEditorWindow::create(Vst::IEditController* controller,
     }
 
     IPtr<IPlugView> view = owned(controller->createView(Vst::ViewType::kEditor));
-    if (!view || view->isPlatformTypeSupported(kPlatformTypeNSView) != kResultTrue)
+    if (!view || view->isPlatformTypeSupported(kPlatformType) != kResultTrue)
     {
         if (error)
-            *error = QStringLiteral("This instrument has no editor that can be shown on macOS.");
+            *error = QStringLiteral("This instrument has no editor that can be shown on this system.");
         return nullptr;
     }
 
@@ -51,12 +64,12 @@ bool PluginEditorWindow::attachView(QString* error)
 
     ViewRect rect;
     if (view->getSize(&rect) == kResultTrue)
-        resize(rect.getWidth(), rect.getHeight());
+        resize(fromPlugin(rect));
     if (view->canResize() != kResultTrue)
         setFixedSize(size());
 
-    // On macOS the native handle of a QWidget is its NSView.
-    if (view->attached(reinterpret_cast<void*>(winId()), kPlatformTypeNSView) != kResultTrue)
+    // winId() is the native window: NSView on macOS, HWND on Windows.
+    if (view->attached(reinterpret_cast<void*>(winId()), kPlatformType) != kResultTrue)
     {
         view->setFrame(nullptr);
         view = nullptr;
@@ -82,7 +95,7 @@ tresult PLUGIN_API PluginEditorWindow::resizeView(IPlugView* plugView, ViewRect*
         return kInvalidArgument;
 
     resizingFromPlugin = true;
-    const QSize target(newSize->getWidth(), newSize->getHeight());
+    const QSize target = fromPlugin(*newSize);
     if (view->canResize() != kResultTrue)
         setFixedSize(target);
     else
@@ -111,15 +124,38 @@ void PluginEditorWindow::resizeEvent(QResizeEvent* event)
     if (!view || resizingFromPlugin || view->canResize() != kResultTrue)
         return;
 
-    ViewRect rect(0, 0, event->size().width(), event->size().height());
+    ViewRect rect = toPlugin(event->size());
     view->checkSizeConstraint(&rect);
-    if (rect.getWidth() != width() || rect.getHeight() != height())
+    const QSize constrained = fromPlugin(rect);
+    if (constrained != size())
     {
         resizingFromPlugin = true;
-        resize(rect.getWidth(), rect.getHeight());
+        resize(constrained);
         resizingFromPlugin = false;
     }
     view->onSize(&rect);
+}
+
+double PluginEditorWindow::pluginScale() const
+{
+    // VST3 editors use points on macOS but physical pixels on Windows and Linux.
+#if defined(Q_OS_MACOS)
+    return 1.0;
+#else
+    return devicePixelRatioF();
+#endif
+}
+
+QSize PluginEditorWindow::fromPlugin(const ViewRect& rect) const
+{
+    const double scale = pluginScale();
+    return {qRound(rect.getWidth() / scale), qRound(rect.getHeight() / scale)};
+}
+
+ViewRect PluginEditorWindow::toPlugin(const QSize& size) const
+{
+    const double scale = pluginScale();
+    return ViewRect(0, 0, qRound(size.width() * scale), qRound(size.height() * scale));
 }
 
 void PluginEditorWindow::closeEvent(QCloseEvent* event)

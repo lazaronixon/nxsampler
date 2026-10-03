@@ -33,6 +33,9 @@ private:
     explicit PluginEditorWindow(Steinberg::IPtr<Steinberg::IPlugView> view);
     bool attachView(QString* error);
     void detachView();
+    double pluginScale() const;
+    QSize fromPlugin(const Steinberg::ViewRect& rect) const;
+    Steinberg::ViewRect toPlugin(const QSize& size) const;
 
     Steinberg::IPtr<Steinberg::IPlugView> view;
     bool resizingFromPlugin = false;

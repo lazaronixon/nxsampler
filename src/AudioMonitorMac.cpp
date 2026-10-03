@@ -1,6 +1,9 @@
+// Core Audio implementation of AudioMonitor (macOS).
 #include "AudioMonitor.h"
 
 #include "Vst3Host.h"
+
+#include <AudioToolbox/AudioToolbox.h>
 
 #include <algorithm>
 
@@ -10,13 +13,40 @@ const std::vector<Steinberg::Vst::Event> kNoEvents;
 
 } // namespace
 
+struct AudioMonitor::Backend
+{
+    AudioComponentInstance unit = nullptr;
+    Vst3Host* host = nullptr;
+
+    static OSStatus render(void* refCon, AudioUnitRenderActionFlags*, const AudioTimeStamp*, UInt32,
+                           UInt32 frames, AudioBufferList* data)
+    {
+        auto* self = static_cast<Backend*>(refCon);
+        auto* left = static_cast<float*>(data->mBuffers[0].mData);
+        auto* right = data->mNumberBuffers > 1 ? static_cast<float*>(data->mBuffers[1].mData) : nullptr;
+
+        if (self->host)
+        {
+            self->host->render(frames, kNoEvents, left, right);
+        }
+        else
+        {
+            for (UInt32 i = 0; i < data->mNumberBuffers; ++i)
+                std::fill_n(static_cast<float*>(data->mBuffers[i].mData), frames, 0.0f);
+        }
+        return noErr;
+    }
+};
+
 AudioMonitor::AudioMonitor()
+: backend(std::make_unique<Backend>())
 {
     AudioComponentDescription desc {};
     desc.componentType = kAudioUnitType_Output;
     desc.componentSubType = kAudioUnitSubType_DefaultOutput;
     desc.componentManufacturer = kAudioUnitManufacturer_Apple;
 
+    AudioComponentInstance& unit = backend->unit;
     AudioComponent component = AudioComponentFindNext(nullptr, &desc);
     if (!component || AudioComponentInstanceNew(component, &unit) != noErr)
     {
@@ -44,7 +74,7 @@ AudioMonitor::AudioMonitor()
     format.mBytesPerFrame = sizeof(float);
     format.mBytesPerPacket = sizeof(float);
 
-    AURenderCallbackStruct callback {&AudioMonitor::renderCallback, this};
+    AURenderCallbackStruct callback {&Backend::render, backend.get()};
 
     if (AudioUnitSetProperty(unit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0,
                              &format, sizeof(format)) != noErr ||
@@ -61,54 +91,40 @@ AudioMonitor::AudioMonitor()
 AudioMonitor::~AudioMonitor()
 {
     stop();
-    if (unit)
+    if (backend->unit)
     {
-        AudioUnitUninitialize(unit);
-        AudioComponentInstanceDispose(unit);
+        AudioUnitUninitialize(backend->unit);
+        AudioComponentInstanceDispose(backend->unit);
     }
 }
 
-void AudioMonitor::start(Vst3Host* vstHost)
+bool AudioMonitor::isAvailable() const
 {
-    if (!unit || running || !vstHost || !vstHost->isLoaded())
+    return backend->unit != nullptr;
+}
+
+void AudioMonitor::start(Vst3Host* host)
+{
+    if (!backend->unit || running || !host || !host->isLoaded())
         return;
 
-    host = vstHost;
+    backend->host = host;
     host->startProcessing();
-    if (AudioOutputUnitStart(unit) == noErr)
+    if (AudioOutputUnitStart(backend->unit) == noErr)
     {
         running = true;
         return;
     }
     host->stopProcessing();
-    host = nullptr;
+    backend->host = nullptr;
 }
 
 void AudioMonitor::stop()
 {
     if (!running)
         return;
-    AudioOutputUnitStop(unit); // synchronous: no render callback runs after this returns
+    AudioOutputUnitStop(backend->unit); // synchronous: no render callback runs after this returns
     running = false;
-    host->stopProcessing();
-    host = nullptr;
-}
-
-OSStatus AudioMonitor::renderCallback(void* refCon, AudioUnitRenderActionFlags*, const AudioTimeStamp*,
-                                      UInt32, UInt32 frames, AudioBufferList* data)
-{
-    auto* self = static_cast<AudioMonitor*>(refCon);
-    auto* left = static_cast<float*>(data->mBuffers[0].mData);
-    auto* right = data->mNumberBuffers > 1 ? static_cast<float*>(data->mBuffers[1].mData) : nullptr;
-
-    if (self->host)
-    {
-        self->host->render(frames, kNoEvents, left, right);
-    }
-    else
-    {
-        for (UInt32 i = 0; i < data->mNumberBuffers; ++i)
-            std::fill_n(static_cast<float*>(data->mBuffers[i].mData), frames, 0.0f);
-    }
-    return noErr;
+    backend->host->stopProcessing();
+    backend->host = nullptr;
 }

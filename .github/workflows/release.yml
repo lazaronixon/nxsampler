@@ -1,0 +1,116 @@
+# Builds NXSampler for macOS and Windows.
+# - Pushing a tag like v0.1.0 builds, tests, packages and publishes a GitHub release.
+# - Running it by hand (Actions tab → Release → Run workflow) builds and keeps the
+#   packages as workflow artifacts without publishing a release.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  QT_VERSION: "6.8.3"
+
+jobs:
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: mac
+          target: desktop
+          cache: true
+
+      - name: Configure (universal: Apple Silicon + Intel)
+        run: >
+          cmake -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0
+
+      - name: Build
+        run: cmake --build build -j 4
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Package .dmg
+        run: |
+          macdeployqt build/NXSampler.app
+          # Unsigned release: an ad-hoc signature is still required to run on Apple Silicon.
+          codesign --force --deep --sign - build/NXSampler.app
+          mkdir -p dmg
+          cp -R build/NXSampler.app dmg/
+          ln -s /Applications dmg/Applications
+          hdiutil create -volname NXSampler -srcfolder dmg -ov -format UDZO NXSampler-macOS.dmg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NXSampler-macOS
+          path: NXSampler-macOS.dmg
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          modules: qtmultimedia
+          cache: true
+
+      - name: Configure
+        run: cmake -B build -A x64
+
+      - name: Build
+        run: cmake --build build --config Release -j 4
+
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Package .zip
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/NXSampler | Out-Null
+          Copy-Item build/Release/NXSampler.exe dist/NXSampler/
+          windeployqt --release --no-translations --compiler-runtime dist/NXSampler/NXSampler.exe
+          Compress-Archive -Path dist/NXSampler -DestinationPath NXSampler-Windows-x64.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NXSampler-Windows
+          path: NXSampler-Windows-x64.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [macos, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            NXSampler-macOS.dmg
+            NXSampler-Windows-x64.zip
+          body: |
+            NXSampler ${{ github.ref_name }}: render VST3 instruments (Kontakt and others) to one WAV file per key.
+
+            **macOS** (Apple Silicon and Intel, macOS 12+): open `NXSampler-macOS.dmg` and drag NXSampler to Applications.
+            The app is not signed by Apple, so the first time macOS blocks it: open **System Settings → Privacy & Security** and click **Open Anyway**.
+
+            **Windows** (64-bit): unzip `NXSampler-Windows-x64.zip` and run `NXSampler\NXSampler.exe`.
+            Windows SmartScreen may warn about an unrecognized app: click **More info → Run anyway**.

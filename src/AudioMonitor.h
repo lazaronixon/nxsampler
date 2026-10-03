@@ -2,12 +2,14 @@
 
 #include <QString>
 
-#include <AudioToolbox/AudioToolbox.h>
+#include <memory>
 
 class Vst3Host;
 
-// Plays a loaded instrument live through the Mac's default output device, so notes
+// Plays a loaded instrument live through the computer's default output device, so notes
 // played in the plugin's editor can be heard.
+// The platform part lives in AudioMonitorMac.cpp (Core Audio) and AudioMonitorQt.cpp
+// (Qt Multimedia, used on Windows and Linux).
 class AudioMonitor
 {
 public:
@@ -17,7 +19,7 @@ public:
     AudioMonitor(const AudioMonitor&) = delete;
     AudioMonitor& operator=(const AudioMonitor&) = delete;
 
-    bool isAvailable() const { return unit != nullptr; }
+    bool isAvailable() const;
     const QString& errorString() const { return error; }
 
     // Rate the host must be prepared at (Vst3Host::Mode::Realtime) before start().
@@ -29,12 +31,8 @@ public:
     bool isRunning() const { return running; }
 
 private:
-    static OSStatus renderCallback(void* refCon, AudioUnitRenderActionFlags* flags,
-                                   const AudioTimeStamp* timeStamp, UInt32 bus, UInt32 frames,
-                                   AudioBufferList* data);
-
-    AudioComponentInstance unit = nullptr;
-    Vst3Host* host = nullptr;
+    struct Backend;
+    std::unique_ptr<Backend> backend;
     double rate = 48000.0;
     bool running = false;
     QString error;

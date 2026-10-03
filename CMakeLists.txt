@@ -1,9 +1,12 @@
 cmake_minimum_required(VERSION 3.28)
 
-# Homebrew's Qt 6 is built for macOS 14.
+# Homebrew's Qt 6 is built for macOS 14. Release builds pass their own value.
 set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0" CACHE STRING "Minimum macOS version")
 
-project(NXSampler VERSION 0.1.0 LANGUAGES C CXX OBJC OBJCXX)
+project(NXSampler VERSION 0.1.0 LANGUAGES C CXX)
+if(APPLE)
+    enable_language(OBJC OBJCXX) # the SDK's macOS module loader is Objective-C++
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -12,7 +15,18 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
 
-find_package(Qt6 6.2 REQUIRED COMPONENTS Widgets Test)
+if(MSVC)
+    # Source files are UTF-8 (…, –), and windows.h must not define min/max macros.
+    add_compile_options(/utf-8)
+    add_compile_definitions(NOMINMAX)
+endif()
+
+# Live audio uses Core Audio on macOS and Qt Multimedia elsewhere.
+if(APPLE)
+    find_package(Qt6 6.2 REQUIRED COMPONENTS Widgets Test)
+else()
+    find_package(Qt6 6.2 REQUIRED COMPONENTS Widgets Test Multimedia)
+endif()
 qt_standard_project_setup()
 
 # --- Steinberg VST3 SDK (MIT) -------------------------------------------------
@@ -44,16 +58,24 @@ FetchContent_Declare(vst3sdk
 )
 FetchContent_MakeAvailable(vst3sdk)
 
-# Host-side pieces that sdk_hosting leaves to the application.
-add_library(nx_vst3_hosting STATIC
-    ${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/plugprovider.cpp
-    ${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/module_mac.mm
-)
-set_source_files_properties(
-    ${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/module_mac.mm
-    PROPERTIES COMPILE_FLAGS "-fobjc-arc"
-)
-target_link_libraries(nx_vst3_hosting PUBLIC sdk_hosting "-framework CoreFoundation" "-framework Foundation")
+# Host-side pieces that sdk_hosting leaves to the application: the plug-in provider and
+# the platform's module (bundle/DLL) loader.
+set(_hosting ${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting)
+if(APPLE)
+    set(_module_loader ${_hosting}/module_mac.mm)
+    set_source_files_properties(${_module_loader} PROPERTIES COMPILE_FLAGS "-fobjc-arc")
+elseif(WIN32)
+    set(_module_loader ${_hosting}/module_win32.cpp)
+else()
+    set(_module_loader ${_hosting}/module_linux.cpp)
+endif()
+add_library(nx_vst3_hosting STATIC ${_hosting}/plugprovider.cpp ${_module_loader})
+target_link_libraries(nx_vst3_hosting PUBLIC sdk_hosting)
+if(APPLE)
+    target_link_libraries(nx_vst3_hosting PUBLIC "-framework CoreFoundation" "-framework Foundation")
+elseif(UNIX)
+    target_link_libraries(nx_vst3_hosting PUBLIC ${CMAKE_DL_LIBS})
+endif()
 
 # --- Core library (no UI) -----------------------------------------------------
 add_library(nx_core STATIC
@@ -68,9 +90,8 @@ target_include_directories(nx_core PUBLIC src)
 target_link_libraries(nx_core PUBLIC Qt6::Core)
 
 # --- Application --------------------------------------------------------------
-qt_add_executable(NXSampler MACOSX_BUNDLE
+qt_add_executable(NXSampler MACOSX_BUNDLE WIN32
     src/main.cpp
-    src/AudioMonitor.cpp
     src/AudioMonitor.h
     src/MainWindow.cpp
     src/MainWindow.h
@@ -91,8 +112,16 @@ set_target_properties(NXSampler PROPERTIES
     MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
     MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
 )
-target_link_libraries(NXSampler PRIVATE nx_core nx_vst3_hosting Qt6::Widgets
-    "-framework AudioToolbox" "-framework CoreAudio")
+target_link_libraries(NXSampler PRIVATE nx_core nx_vst3_hosting Qt6::Widgets)
+if(APPLE)
+    target_sources(NXSampler PRIVATE src/AudioMonitorMac.cpp)
+    target_link_libraries(NXSampler PRIVATE "-framework AudioToolbox" "-framework CoreAudio")
+else()
+    target_sources(NXSampler PRIVATE src/AudioMonitorQt.cpp)
+    target_link_libraries(NXSampler PRIVATE Qt6::Multimedia)
+endif()
+
+install(TARGETS NXSampler BUNDLE DESTINATION . RUNTIME DESTINATION .)
 
 # --- Tests --------------------------------------------------------------------
 enable_testing()
