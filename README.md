@@ -3,6 +3,8 @@
 Renders a VST3 instrument (Kontakt or any other) one note at a time and saves one WAV
 file per key, ready to load into a hardware keyboard's sampler.
 
+![NXSampler with Kontakt 7 loaded and keys selected](docs/screenshot.png)
+
 ## Build
 
 ```sh
@@ -37,7 +39,7 @@ The first configure downloads the Steinberg VST3 SDK (MIT license).
   with no release and no fade.
 - **Normalize on:** each file is peak-normalized to 0 dBFS on its own, like Logic Pro.
   **Off:** the instrument's own level is kept, and anything above full scale is clipped.
-- **Loop on:** the app finds the most seamless sustain loop and stores it as a forward loop
+- **Auto loop on:** the app finds the most seamless sustain loop and stores it as a forward loop
   in the `smpl` chunk.
   - The loop end is near the end of the file; the start comes after the attack.
   - Both points sit on upward zero crossings, and the pair is chosen so the waveform and

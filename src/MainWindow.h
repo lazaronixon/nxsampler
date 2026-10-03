@@ -9,10 +9,13 @@
 
 #include <memory>
 
-class QButtonGroup;
 class QCheckBox;
 class QComboBox;
 class QDoubleSpinBox;
+class QFormLayout;
+class QGridLayout;
+class QHBoxLayout;
+class QLayout;
 class QLabel;
 class QLineEdit;
 class QProgressBar;
@@ -42,7 +45,15 @@ private:
     QWidget* buildInstrumentBox();
     QWidget* buildKeyboardBox();
     QWidget* buildSettingsBox();
+    QWidget* buildLoopBox();
     QWidget* buildOutputBox();
+    QFormLayout* newForm(QWidget* box); // null box: a form to nest in another layout
+    static QHBoxLayout* checkRow(QCheckBox* check, QWidget* extra = nullptr);
+    static QGridLayout* newTwoColumnGrid(QWidget* box);
+    // Adds "label: control" at a grid position; the label joins the shared label width.
+    void addGridSetting(QGridLayout* grid, int row, int column, const QString& text, QWidget* control,
+                        QLayout* controlLayout = nullptr);
+    void alignFormLabels();
     QWidget* buildActionRow();
 
     void populatePlugins(const QList<PluginInfo>& list);
@@ -67,6 +78,8 @@ private:
     AudioMonitor monitor;
     QList<PluginInfo> plugins;
     QPointer<PluginEditorWindow> editor;
+    QList<QFormLayout*> forms;   // form panels, whose label columns share one width
+    QList<QLabel*> alignedLabels; // labels outside those forms that share the same width
     QThread* workerThread = nullptr;
     ExtractWorker* worker = nullptr;
     bool extracting = false;
@@ -86,8 +99,8 @@ private:
     // Settings
     QComboBox* dynamicsCombo = nullptr; // item data = MIDI velocity
     QDoubleSpinBox* durationSpin = nullptr;
-    QButtonGroup* channelsGroup = nullptr;
-    QButtonGroup* bitsGroup = nullptr;
+    QComboBox* channelsCombo = nullptr; // item data = channel count
+    QComboBox* bitsCombo = nullptr;     // item data = bits per sample
     QComboBox* sampleRateCombo = nullptr;
     QCheckBox* normalizeCheck = nullptr;
     QCheckBox* loopCheck = nullptr;

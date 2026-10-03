@@ -5,7 +5,6 @@
 #include "PluginEditorWindow.h"
 
 #include <QApplication>
-#include <QButtonGroup>
 #include <QCheckBox>
 #include <QCloseEvent>
 #include <QComboBox>
@@ -18,10 +17,10 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
+#include <QLocale>
 #include <QMessageBox>
 #include <QProgressBar>
 #include <QPushButton>
-#include <QRadioButton>
 #include <QRegularExpressionValidator>
 #include <QScrollArea>
 #include <QScrollBar>
@@ -70,7 +69,10 @@ MainWindow::MainWindow()
     layout->addWidget(buildInstrumentBox());
     layout->addWidget(buildKeyboardBox());
     layout->addWidget(buildSettingsBox());
+    layout->addWidget(buildLoopBox());
     layout->addWidget(buildOutputBox());
+    alignFormLabels();
+    layout->addStretch(); // extra window height goes here, so the panels keep their size
     layout->addWidget(buildActionRow());
     setCentralWidget(central);
 
@@ -183,19 +185,12 @@ QWidget* MainWindow::buildKeyboardBox()
 QWidget* MainWindow::buildSettingsBox()
 {
     auto* box = new QGroupBox(tr("Sample settings"));
-    auto* columns = new QHBoxLayout(box);
-    auto* left = new QFormLayout;
-    auto* right = new QFormLayout;
-    columns->addLayout(left);
-    columns->addSpacing(24);
-    columns->addLayout(right);
 
-    dynamicsCombo = new QComboBox;
-    for (const Dynamic& d : kDynamics)
-        dynamicsCombo->addItem(QStringLiteral("%1  (velocity %2)").arg(QLatin1String(d.symbol)).arg(d.velocity),
-                               d.velocity);
-    dynamicsCombo->setToolTip(tr("MIDI velocity each note is played with."));
-    left->addRow(tr("Dynamics:"), dynamicsCombo);
+    QGridLayout* grid = newTwoColumnGrid(box);
+    auto addSetting = [this, grid](int row, int column, const QString& text, QWidget* control,
+                                   QLayout* controlLayout = nullptr) {
+        addGridSetting(grid, row, column, text, control, controlLayout);
+    };
 
     durationSpin = new QDoubleSpinBox;
     durationSpin->setRange(0.05, 60.0);
@@ -203,61 +198,130 @@ QWidget* MainWindow::buildSettingsBox()
     durationSpin->setSingleStep(0.1);
     durationSpin->setSuffix(tr(" s"));
     durationSpin->setToolTip(tr("The note is held for this long; the file is cut at exactly this length."));
-    left->addRow(tr("Duration:"), durationSpin);
+    addSetting(0, 0, tr("Duration:"), durationSpin);
 
-    auto makeChoice = [](QButtonGroup*& group, const QList<QPair<QString, int>>& options) {
-        auto* widget = new QWidget;
-        auto* row = new QHBoxLayout(widget);
-        row->setContentsMargins(0, 0, 0, 0);
-        group = new QButtonGroup(widget);
-        for (const auto& [label, id] : options)
-        {
-            auto* radio = new QRadioButton(label);
-            group->addButton(radio, id);
-            row->addWidget(radio);
-        }
-        row->addStretch();
-        return widget;
-    };
-    left->addRow(tr("Channels:"), makeChoice(channelsGroup, {{tr("Mono"), 1}, {tr("Stereo"), 2}}));
-    left->addRow(tr("Bit depth:"), makeChoice(bitsGroup, {{tr("8-bit"), 8}, {tr("16-bit"), 16}}));
+    dynamicsCombo = new QComboBox;
+    for (const Dynamic& d : kDynamics)
+        dynamicsCombo->addItem(QStringLiteral("%1  (velocity %2)").arg(QLatin1String(d.symbol)).arg(d.velocity),
+                               d.velocity);
+    dynamicsCombo->setToolTip(tr("MIDI velocity each note is played with."));
+    addSetting(1, 0, tr("Dynamics:"), dynamicsCombo);
 
     sampleRateCombo = new QComboBox;
     for (int rate : kSampleRates)
-        sampleRateCombo->addItem(QStringLiteral("%1 Hz").arg(rate), rate);
-    right->addRow(tr("Sample rate:"), sampleRateCombo);
+        sampleRateCombo->addItem(QStringLiteral("%1 Hz").arg(QLocale().toString(rate)), rate);
+    addSetting(2, 0, tr("Sample rate:"), sampleRateCombo);
+
+    bitsCombo = new QComboBox;
+    bitsCombo->addItem(tr("16-bit"), 16);
+    bitsCombo->addItem(tr("8-bit"), 8);
+    addSetting(0, 3, tr("Bit depth:"), bitsCombo);
+
+    channelsCombo = new QComboBox;
+    channelsCombo->addItem(tr("Mono"), 1);
+    channelsCombo->addItem(tr("Stereo"), 2);
+    addSetting(1, 3, tr("Channels:"), channelsCombo);
 
     normalizeCheck = new QCheckBox;
-    right->addRow(tr("Normalize:"), normalizeCheck);
+    addSetting(2, 3, tr("Normalize:"), nullptr, checkRow(normalizeCheck));
+
+    return box;
+}
+
+QWidget* MainWindow::buildLoopBox()
+{
+    auto* box = new QGroupBox(tr("Loop"));
+    QGridLayout* grid = newTwoColumnGrid(box);
 
     loopCheck = new QCheckBox;
-    right->addRow(tr("Loop:"), loopCheck);
+    loopCheck->setToolTip(tr("Find the most seamless loop in each note and store it in the WAV file."));
+    addGridSetting(grid, 0, 0, tr("Auto loop:"), nullptr, checkRow(loopCheck));
 
-    auto* crossfadeRow = new QWidget;
-    auto* crossfadeLayout = new QHBoxLayout(crossfadeRow);
-    crossfadeLayout->setContentsMargins(0, 0, 0, 0);
     crossfadeCheck = new QCheckBox;
     crossfadeSpin = new QSpinBox;
     crossfadeSpin->setRange(1, 100);
     crossfadeSpin->setSingleStep(10);
     crossfadeSpin->setSuffix(tr("%"));
-    crossfadeSpin->setToolTip(tr("Blends the end of the loop into the audio before the loop start "
-                                 "for a smoother loop. Length as a percentage of the loop."));
-    crossfadeLayout->addWidget(crossfadeCheck);
-    crossfadeLayout->addWidget(crossfadeSpin);
-    crossfadeLayout->addStretch();
-    right->addRow(tr("Crossfade:"), crossfadeRow);
+    const QString crossfadeTip = tr("Blends the end of the loop into the audio before the loop start "
+                                    "for a smoother loop. Length as a percentage of the loop.");
+    crossfadeCheck->setToolTip(crossfadeTip);
+    crossfadeSpin->setToolTip(crossfadeTip);
+    addGridSetting(grid, 0, 3, tr("Crossfade:"), nullptr, checkRow(crossfadeCheck, crossfadeSpin));
+
     connect(loopCheck, &QCheckBox::toggled, this, &MainWindow::updateCrossfadeEnabled);
     connect(crossfadeCheck, &QCheckBox::toggled, this, &MainWindow::updateCrossfadeEnabled);
 
     return box;
 }
 
+QFormLayout* MainWindow::newForm(QWidget* box)
+{
+    // One control per row; controls stretch to the full width of the panel.
+    auto* form = box ? new QFormLayout(box) : new QFormLayout;
+    form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    form->setFormAlignment(Qt::AlignLeft | Qt::AlignTop); // macOS centres rows by default
+    form->setVerticalSpacing(4);
+    forms.append(form);
+    return form;
+}
+
+QHBoxLayout* MainWindow::checkRow(QCheckBox* check, QWidget* extra)
+{
+    // Every checkbox row is built the same way so the checkboxes line up.
+    auto* row = new QHBoxLayout;
+    row->addWidget(check);
+    if (extra)
+        row->addWidget(extra, 1); // fills the rest of the row
+    else
+        row->addStretch();
+    return row;
+}
+
+QGridLayout* MainWindow::newTwoColumnGrid(QWidget* box)
+{
+    // Two equal columns on one grid, so rows line up across them.
+    // Columns: label, control, gap, label, control.
+    auto* grid = new QGridLayout(box);
+    grid->setVerticalSpacing(4);
+    grid->setColumnStretch(1, 1);
+    grid->setColumnStretch(4, 1);
+    grid->setColumnMinimumWidth(2, 16);
+    return grid;
+}
+
+void MainWindow::addGridSetting(QGridLayout* grid, int row, int column, const QString& text, QWidget* control,
+                                QLayout* controlLayout)
+{
+    auto* label = new QLabel(text);
+    alignedLabels.append(label);
+    grid->addWidget(label, row, column, Qt::AlignRight | Qt::AlignVCenter);
+    if (controlLayout)
+        grid->addLayout(controlLayout, row, column + 1);
+    else
+        grid->addWidget(control, row, column + 1);
+}
+
+void MainWindow::alignFormLabels()
+{
+    // Same label width in every panel, so the controls line up from panel to panel.
+    QList<QWidget*> labels(alignedLabels.begin(), alignedLabels.end());
+    for (QFormLayout* form : std::as_const(forms))
+        for (int row = 0; row < form->rowCount(); ++row)
+            if (QLayoutItem* item = form->itemAt(row, QFormLayout::LabelRole); item && item->widget())
+                labels.append(item->widget());
+
+    int widest = 0;
+    for (QWidget* label : std::as_const(labels))
+        widest = std::max(widest, label->sizeHint().width());
+    for (QWidget* label : std::as_const(labels))
+        label->setMinimumWidth(widest);
+}
+
+
 QWidget* MainWindow::buildOutputBox()
 {
     auto* box = new QGroupBox(tr("Output"));
-    auto* form = new QFormLayout(box);
-    form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    auto* form = newForm(box);
 
     nameEdit = new QLineEdit;
     nameEdit->setPlaceholderText(QStringLiteral("RealStrF"));
@@ -418,8 +482,8 @@ ExtractSettings MainWindow::currentSettings() const
     s.keys = keyboard->selectedKeys();
     s.velocity = dynamicsCombo->currentData().toInt();
     s.durationSec = durationSpin->value();
-    s.channels = channelsGroup->checkedId();
-    s.bitsPerSample = bitsGroup->checkedId();
+    s.channels = channelsCombo->currentData().toInt();
+    s.bitsPerSample = bitsCombo->currentData().toInt();
     s.sampleRate = sampleRateCombo->currentData().toInt();
     s.normalize = normalizeCheck->isChecked();
     s.loop = loopCheck->isChecked();
@@ -522,12 +586,9 @@ void MainWindow::setExtracting(bool value)
         editor->setEnabled(!value);
     for (QWidget* w : std::initializer_list<QWidget*>{pluginCombo, loadButton, editorButton, rescanButton,
                                                       keyboard, dynamicsCombo, durationSpin, sampleRateCombo,
-                                                      normalizeCheck, loopCheck, nameEdit, folderEdit})
+                                                      bitsCombo, channelsCombo, normalizeCheck, loopCheck,
+                                                      nameEdit, folderEdit})
         w->setEnabled(!value);
-    for (auto* button : channelsGroup->buttons())
-        button->setEnabled(!value);
-    for (auto* button : bitsGroup->buttons())
-        button->setEnabled(!value);
     updateCrossfadeEnabled();
     if (!value)
         updateState();
@@ -571,9 +632,10 @@ void MainWindow::updateState()
 
 void MainWindow::applyDefaults()
 {
-    dynamicsCombo->setCurrentIndex(dynamicsCombo->findData(kDefaultVelocity));    durationSpin->setValue(1.0);
-    channelsGroup->button(1)->setChecked(true);
-    bitsGroup->button(16)->setChecked(true);
+    dynamicsCombo->setCurrentIndex(dynamicsCombo->findData(kDefaultVelocity));
+    durationSpin->setValue(1.0);
+    channelsCombo->setCurrentIndex(channelsCombo->findData(1));
+    bitsCombo->setCurrentIndex(bitsCombo->findData(16));
     sampleRateCombo->setCurrentIndex(sampleRateCombo->findData(44100));
     normalizeCheck->setChecked(true);
     loopCheck->setChecked(true);
