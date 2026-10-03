@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.28)
 # Homebrew's Qt 6 is built for macOS 14. Release builds pass their own value.
 set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0" CACHE STRING "Minimum macOS version")
 
-project(NXSampler VERSION 0.1.0 LANGUAGES C CXX)
+project(NXSampler VERSION 0.0.1 LANGUAGES C CXX)
 if(APPLE)
     enable_language(OBJC OBJCXX) # the SDK's macOS module loader is Objective-C++
 endif()
@@ -113,6 +113,7 @@ set_target_properties(NXSampler PROPERTIES
     MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
 )
 target_link_libraries(NXSampler PRIVATE nx_core nx_vst3_hosting Qt6::Widgets)
+target_compile_definitions(NXSampler PRIVATE NXSAMPLER_VERSION="${PROJECT_VERSION}")
 if(APPLE)
     target_sources(NXSampler PRIVATE src/AudioMonitorMac.cpp)
     target_link_libraries(NXSampler PRIVATE "-framework AudioToolbox" "-framework CoreAudio")

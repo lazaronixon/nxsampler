@@ -62,7 +62,7 @@ public:
 MainWindow::MainWindow()
 : host(std::make_unique<Vst3Host>())
 {
-    setWindowTitle(QStringLiteral("NXSampler"));
+    setWindowTitle(QStringLiteral("NXSampler %1").arg(QApplication::applicationVersion()));
 
     auto* central = new QWidget(this);
     auto* layout = new QVBoxLayout(central);

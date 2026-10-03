@@ -6,7 +6,21 @@ file per key, ready to load into a hardware keyboard's sampler.
 <img width="781" height="903" alt="Screenshot 2026-10-03 at 05 00 02" src="https://github.com/user-attachments/assets/409d92e4-5489-4e3d-9531-b415cf6cb70a" />
 
 
+## Download
+
+Get the latest version from the
+[Releases page](https://github.com/lazaronixon/nxsampler/releases/latest).
+
+- **macOS** (Apple Silicon and Intel, macOS 12 or later): open `NXSampler-macOS.dmg` and
+  drag NXSampler to Applications. The app is not signed by Apple, so the first time macOS
+  blocks it. Open **System Settings → Privacy & Security** and click **Open Anyway**.
+- **Windows** (64-bit): unzip `NXSampler-Windows-x64.zip` and run
+  `NXSampler\NXSampler.exe`. If SmartScreen warns about an unrecognized app, click
+  **More info → Run anyway**.
+
 ## Build
+
+macOS:
 
 ```sh
 brew install cmake qt
@@ -16,17 +30,31 @@ ctest --test-dir build        # unit tests
 open build/NXSampler.app
 ```
 
+Windows (Visual Studio 2022 and Qt 6 for MSVC with the Qt Multimedia module):
+
+```sh
+cmake -B build -A x64 -DCMAKE_PREFIX_PATH=C:/Qt/6.8.3/msvc2022_64
+cmake --build build --config Release
+ctest --test-dir build -C Release
+```
+
 The first configure downloads the Steinberg VST3 SDK (MIT license).
+
+To publish a release, set the version in `CMakeLists.txt` (`project(NXSampler VERSION …)`)
+and push a matching tag (`git tag v0.0.1 && git push origin v0.0.1`).
+GitHub Actions builds and tests both platforms and attaches the `.dmg` and `.zip` to the
+release.
 
 ## Use
 
 1. Pick an instrument, click **Load**, then click **Open Editor** and choose a sound. The
-   instrument plays live through your Mac's audio output, so you can hear it while you
-   play it in the editor. Live audio pauses during an extraction.
+   instrument plays live through your computer's audio output, so you can hear it while
+   you play it in the editor. Live audio pauses during an extraction.
    Notes are sent on MIDI channel 1. In Kontakt, make sure the instrument you want is on
    channel 1 (or Omni) and is the only one in the rack.
-   Instruments come from `/Library/Audio/Plug-Ins/VST3` and `~/Library/Audio/Plug-Ins/VST3`.
-   Click **Rescan** after installing new plugins.
+   Instruments come from the standard VST3 folders: `/Library/Audio/Plug-Ins/VST3` and
+   `~/Library/Audio/Plug-Ins/VST3` on macOS, `C:\Program Files\Common Files\VST3` on
+   Windows. Click **Rescan** after installing new plugins.
 2. Select keys on the keyboard. Click toggles a key, dragging paints over several keys,
    and Shift+click selects a range.
 3. Pick the dynamics marking (ppp = velocity 16 up to fff = 127), then set the duration, channels, bit depth, sample rate, normalize,
