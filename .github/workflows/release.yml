@@ -28,7 +28,7 @@ jobs:
           target: desktop
           cache: true
 
-      - name: Configure (universal: Apple Silicon + Intel)
+      - name: Configure (universal binary for Apple Silicon and Intel)
         run: >
           cmake -B build
           -DCMAKE_BUILD_TYPE=Release
