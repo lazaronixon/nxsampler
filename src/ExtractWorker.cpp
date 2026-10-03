@@ -47,7 +47,8 @@ Event noteEvent(Event::EventTypes type, int key, float velocity)
 
 QString ExtractSettings::filePath(int key) const
 {
-    return QDir(folder).filePath(QStringLiteral("%1%2.wav").arg(name).arg(key));
+    // Always three digits (005, 047, 108) so the files sort by key when sorted by name.
+    return QDir(folder).filePath(QStringLiteral("%1%2.wav").arg(name).arg(key, 3, 10, QLatin1Char('0')));
 }
 
 ExtractWorker::ExtractWorker(Vst3Host* vstHost, ExtractSettings extractSettings)
@@ -91,6 +92,9 @@ void ExtractWorker::run()
             loop = LoopFinder::find(audio, settings.sampleRate);
             if (!loop)
                 errors.append(QStringLiteral("Key %1: no loop point found; saved without a loop.").arg(key));
+            else if (settings.crossfadePercent > 0)
+                LoopFinder::crossfade(audio, *loop,
+                                      (loop->end - loop->start + 1) * settings.crossfadePercent / 100);
         }
 
         WavFormat format;

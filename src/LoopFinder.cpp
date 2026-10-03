@@ -133,4 +133,28 @@ std::optional<LoopPoints> find(const Channels& audio, int sampleRate)
     return best;
 }
 
+int64_t crossfade(Channels& audio, const LoopPoints& loop, int64_t frames)
+{
+    const int64_t loopLength = loop.end - loop.start + 1;
+    const int64_t length = std::min({frames, loop.start, loopLength});
+    if (length <= 0)
+        return 0;
+
+    // Linear (constant-gain) fade: the two sides are similar by construction, and the
+    // blend never exceeds the louder of them, so normalized audio stays within full scale.
+    const int64_t fadeStart = loop.end - length + 1;
+    const int64_t sourceStart = loop.start - length;
+    for (auto& channel : audio)
+    {
+        for (int64_t i = 0; i < length; ++i)
+        {
+            const float t = static_cast<float>(i + 1) / static_cast<float>(length);
+            float& target = channel[static_cast<size_t>(fadeStart + i)];
+            const float source = channel[static_cast<size_t>(sourceStart + i)];
+            target = target * (1.0f - t) + source * t;
+        }
+    }
+    return length;
+}
+
 } // namespace LoopFinder

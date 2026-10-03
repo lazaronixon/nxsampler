@@ -25,6 +25,8 @@
 #include <QRegularExpressionValidator>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QSpinBox>
+#include <QStatusBar>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QThread>
@@ -68,8 +70,16 @@ MainWindow::MainWindow()
     layout->addWidget(buildInstrumentBox());
     layout->addWidget(buildKeyboardBox());
     layout->addWidget(buildSettingsBox());
+    layout->addWidget(buildOutputBox());
     layout->addWidget(buildActionRow());
     setCentralWidget(central);
+
+    // Status bar: instructions and progress on the left, instrument state on the right.
+    statusMessage = new QLabel;
+    pluginStatus = new QLabel(tr("No instrument loaded."));
+    statusBar()->setSizeGripEnabled(false);
+    statusBar()->addWidget(statusMessage, 1);
+    statusBar()->addPermanentWidget(pluginStatus);
 
     applyDefaults();
 
@@ -107,7 +117,7 @@ void MainWindow::startMonitor()
         monitor.start(host.get());
 
     if (!error.isEmpty())
-        pluginStatus->setText(tr("Loaded: %1. No live audio: %2").arg(host->plugin().displayName(), error));
+        pluginStatus->setText(tr("Loaded: %1 (no live audio: %2)").arg(host->plugin().displayName(), error));
 }
 
 void MainWindow::stopMonitor()
@@ -126,13 +136,11 @@ QWidget* MainWindow::buildInstrumentBox()
     loadButton = new QPushButton(tr("Load"));
     editorButton = new QPushButton(tr("Open Editor"));
     rescanButton = new QPushButton(tr("Rescan"));
-    pluginStatus = new QLabel(tr("No instrument loaded."));
 
     layout->addWidget(pluginCombo, 0, 0);
     layout->addWidget(loadButton, 0, 1);
     layout->addWidget(editorButton, 0, 2);
     layout->addWidget(rescanButton, 0, 3);
-    layout->addWidget(pluginStatus, 1, 0, 1, 4);
     layout->setColumnStretch(0, 1);
 
     connect(loadButton, &QPushButton::clicked, this, &MainWindow::loadSelectedPlugin);
@@ -160,13 +168,10 @@ QWidget* MainWindow::buildKeyboardBox()
     auto* selectAll = new QPushButton(tr("Select All"));
     auto* clear = new QPushButton(tr("Clear"));
     selectionLabel = new QLabel;
-    auto* hint = new QLabel(tr("Click to toggle · drag to paint · Shift+click for a range"));
-    hint->setEnabled(false);
     row->addWidget(selectAll);
     row->addWidget(clear);
     row->addWidget(selectionLabel);
     row->addStretch();
-    row->addWidget(hint);
     layout->addLayout(row);
 
     connect(selectAll, &QPushButton::clicked, keyboard, &KeyboardWidget::selectAll);
@@ -228,11 +233,38 @@ QWidget* MainWindow::buildSettingsBox()
     loopCheck = new QCheckBox;
     right->addRow(tr("Loop:"), loopCheck);
 
+    auto* crossfadeRow = new QWidget;
+    auto* crossfadeLayout = new QHBoxLayout(crossfadeRow);
+    crossfadeLayout->setContentsMargins(0, 0, 0, 0);
+    crossfadeCheck = new QCheckBox;
+    crossfadeSpin = new QSpinBox;
+    crossfadeSpin->setRange(1, 100);
+    crossfadeSpin->setSingleStep(10);
+    crossfadeSpin->setSuffix(tr("%"));
+    crossfadeSpin->setToolTip(tr("Blends the end of the loop into the audio before the loop start "
+                                 "for a smoother loop. Length as a percentage of the loop."));
+    crossfadeLayout->addWidget(crossfadeCheck);
+    crossfadeLayout->addWidget(crossfadeSpin);
+    crossfadeLayout->addStretch();
+    right->addRow(tr("Crossfade:"), crossfadeRow);
+    connect(loopCheck, &QCheckBox::toggled, this, &MainWindow::updateCrossfadeEnabled);
+    connect(crossfadeCheck, &QCheckBox::toggled, this, &MainWindow::updateCrossfadeEnabled);
+
+    return box;
+}
+
+QWidget* MainWindow::buildOutputBox()
+{
+    auto* box = new QGroupBox(tr("Output"));
+    auto* form = new QFormLayout(box);
+    form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+
     nameEdit = new QLineEdit;
     nameEdit->setPlaceholderText(QStringLiteral("RealStrF"));
+    nameEdit->setMaxLength(13);
     nameEdit->setValidator(new QRegularExpressionValidator(
-        QRegularExpression(QStringLiteral("[A-Za-z0-9_\\-]{1,40}")), nameEdit));
-    right->addRow(tr("Name:"), nameEdit);
+        QRegularExpression(QStringLiteral("[A-Za-z0-9_\\-]{1,13}")), nameEdit));
+    form->addRow(tr("Name:"), nameEdit);
 
     auto* folderRow = new QWidget;
     auto* folderLayout = new QHBoxLayout(folderRow);
@@ -241,11 +273,7 @@ QWidget* MainWindow::buildSettingsBox()
     auto* browse = new QPushButton(tr("Browse…"));
     folderLayout->addWidget(folderEdit);
     folderLayout->addWidget(browse);
-    right->addRow(tr("Output folder:"), folderRow);
-
-    exampleLabel = new QLabel;
-    exampleLabel->setEnabled(false);
-    right->addRow(QString(), exampleLabel);
+    form->addRow(tr("Output folder:"), folderRow);
 
     connect(browse, &QPushButton::clicked, this, &MainWindow::browseFolder);
     connect(nameEdit, &QLineEdit::textChanged, this, &MainWindow::updateState);
@@ -263,13 +291,11 @@ QWidget* MainWindow::buildActionRow()
     progressBar->setRange(0, 1);
     progressBar->setValue(0);
     progressBar->setTextVisible(false);
-    progressLabel = new QLabel;
     extractButton = new QPushButton(tr("Extract"));
     extractButton->setDefault(true);
     extractButton->setMinimumWidth(120);
 
     row->addWidget(progressBar, 1);
-    row->addWidget(progressLabel);
     row->addWidget(extractButton);
 
     connect(extractButton, &QPushButton::clicked, this, [this] {
@@ -278,7 +304,7 @@ QWidget* MainWindow::buildActionRow()
             if (worker)
                 worker->cancel();
             extractButton->setEnabled(false);
-            progressLabel->setText(tr("Cancelling…"));
+            statusMessage->setText(tr("Cancelling…"));
         }
         else
         {
@@ -350,10 +376,8 @@ void MainWindow::loadSelectedPlugin()
     }
     else
     {
-        pluginStatus->setText(tr("Loaded: %1. Choose a sound in the editor; you can play it there to listen.")
-                                  .arg(host->plugin().displayName()));
+        pluginStatus->setText(tr("Loaded: %1").arg(host->plugin().displayName()));
         startMonitor();
-        openEditor();
     }
     updateState();
 }
@@ -399,6 +423,7 @@ ExtractSettings MainWindow::currentSettings() const
     s.sampleRate = sampleRateCombo->currentData().toInt();
     s.normalize = normalizeCheck->isChecked();
     s.loop = loopCheck->isChecked();
+    s.crossfadePercent = crossfadeCheck->isChecked() ? crossfadeSpin->value() : 0;
     s.name = nameEdit->text().trimmed();
     s.folder = folderEdit->text().trimmed();
     return s;
@@ -449,7 +474,7 @@ void MainWindow::startExtraction()
     connect(worker, &ExtractWorker::progress, this, [this](int done, int total, int key) {
         progressBar->setValue(done);
         if (key >= 0)
-            progressLabel->setText(tr("Key %1 (%2/%3)").arg(key).arg(done + 1).arg(total));
+            statusMessage->setText(tr("Extracting key %1 (%2/%3)…").arg(key).arg(done + 1).arg(total));
     });
     connect(worker, &ExtractWorker::finished, this, &MainWindow::onExtractionFinished);
     connect(worker, &ExtractWorker::finished, workerThread, &QThread::quit);
@@ -467,7 +492,7 @@ void MainWindow::onExtractionFinished(const QStringList& written, const QStringL
     startMonitor();
 
     const QString folder = folderEdit->text().trimmed();
-    progressLabel->setText(cancelled ? tr("Cancelled: %n file(s) written.", nullptr, static_cast<int>(written.size()))
+    statusMessage->setText(cancelled ? tr("Cancelled: %n file(s) written.", nullptr, static_cast<int>(written.size()))
                                      : tr("Done: %n file(s) written.", nullptr, static_cast<int>(written.size())));
 
     QMessageBox box(this);
@@ -503,8 +528,16 @@ void MainWindow::setExtracting(bool value)
         button->setEnabled(!value);
     for (auto* button : bitsGroup->buttons())
         button->setEnabled(!value);
+    updateCrossfadeEnabled();
     if (!value)
         updateState();
+}
+
+void MainWindow::updateCrossfadeEnabled()
+{
+    const bool loopOn = !extracting && loopCheck->isChecked();
+    crossfadeCheck->setEnabled(loopOn);
+    crossfadeSpin->setEnabled(loopOn && crossfadeCheck->isChecked());
 }
 
 void MainWindow::updateState()
@@ -513,10 +546,6 @@ void MainWindow::updateState()
     selectionLabel->setText(tr("%n key(s) selected", nullptr, count));
 
     const QString name = nameEdit->text().trimmed();
-    const QList<int> keys = keyboard->selectedKeys();
-    const int exampleKey = keys.isEmpty() ? 60 : keys.first();
-    exampleLabel->setText(name.isEmpty() ? QString()
-                                         : tr("Files: %1%2.wav, …").arg(name).arg(exampleKey));
 
     if (extracting)
         return;
@@ -526,9 +555,10 @@ void MainWindow::updateState()
 
     QString missing;
     if (!host->isLoaded())
-        missing = tr("Load an instrument.");
+        missing = tr("Pick an instrument and click Load.");
     else if (count == 0)
-        missing = tr("Select at least one key.");
+        missing = tr("Click Open Editor to choose a sound, then select keys: click to toggle, "
+                     "drag to paint, Shift+click for a range.");
     else if (name.isEmpty())
         missing = tr("Enter a name.");
     else if (folderEdit->text().trimmed().isEmpty())
@@ -536,7 +566,7 @@ void MainWindow::updateState()
 
     extractButton->setEnabled(missing.isEmpty());
     extractButton->setToolTip(missing);
-    progressLabel->setText(missing.isEmpty() ? tr("Ready.") : missing);
+    statusMessage->setText(missing.isEmpty() ? tr("Ready. Click Extract.") : missing);
 }
 
 void MainWindow::applyDefaults()
@@ -547,8 +577,33 @@ void MainWindow::applyDefaults()
     sampleRateCombo->setCurrentIndex(sampleRateCombo->findData(44100));
     normalizeCheck->setChecked(true);
     loopCheck->setChecked(true);
+    crossfadeCheck->setChecked(false);
+    crossfadeSpin->setValue(50);
+    updateCrossfadeEnabled();
     folderEdit->setText(QStandardPaths::writableLocation(QStandardPaths::MusicLocation) +
                         QStringLiteral("/NXSampler"));
+}
+
+void MainWindow::showEvent(QShowEvent* event)
+{
+    QMainWindow::showEvent(event);
+    QTimer::singleShot(0, this, &MainWindow::alignStatusBar);
+}
+
+void MainWindow::alignStatusBar()
+{
+    // Line the status bar text up with the panels above. The status bar adds its own
+    // spacing, which depends on the style, so measure instead of guessing.
+    const QMargins content = centralWidget()->layout()->contentsMargins();
+
+    statusMessage->setContentsMargins(0, 0, 0, 0);
+    pluginStatus->setContentsMargins(0, 0, 0, 0);
+    statusBar()->layout()->activate();
+
+    const int textLeft = statusMessage->mapTo(this, QPoint(0, 0)).x();
+    const int textRight = width() - pluginStatus->mapTo(this, QPoint(pluginStatus->width(), 0)).x();
+    statusMessage->setContentsMargins(std::max(0, content.left() - textLeft), 0, 0, 0);
+    pluginStatus->setContentsMargins(0, 0, std::max(0, content.right() - textRight), 0);
 }
 
 void MainWindow::closeEvent(QCloseEvent* event)

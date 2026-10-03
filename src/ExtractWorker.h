@@ -21,6 +21,7 @@ struct ExtractSettings
     int sampleRate = 44100;
     bool normalize = true;
     bool loop = true;         // find a sustain loop and store it in the file
+    int crossfadePercent = 0; // loop crossfade length as % of the loop length; 0 = off
     QString name;             // file prefix, e.g. RealStr2P
     QString folder;
 

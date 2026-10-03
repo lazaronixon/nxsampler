@@ -20,4 +20,10 @@ namespace LoopFinder {
 // Returns nothing for silence or audio too short to loop.
 std::optional<LoopPoints> find(const Channels& audio, int sampleRate);
 
+// Blends the last `frames` frames of the loop into the audio just before the loop start,
+// so that when playback jumps from the end back to the start it carries on exactly as
+// the audio did originally. The length is shortened when there is not enough audio
+// before the start or inside the loop. Returns the number of frames crossfaded.
+int64_t crossfade(Channels& audio, const LoopPoints& loop, int64_t frames);
+
 } // namespace LoopFinder

@@ -74,6 +74,39 @@ private slots:
         QVERIFY(LoopFinder::find(audio, 44100));
     }
 
+    void crossfadeMakesSeamContinuous()
+    {
+        const int rate = 44100;
+        Channels audio = tone(110.0, rate, 1.0, 0.6);
+        audio.push_back(audio[0]);
+        const Channels original = audio;
+        const LoopPoints loop {30000, 42000};
+        const int64_t length = 2205; // 50 ms
+
+        QCOMPARE(LoopFinder::crossfade(audio, loop, length), length);
+
+        for (size_t ch = 0; ch < audio.size(); ++ch)
+        {
+            const auto& x = audio[ch];
+            const auto& o = original[ch];
+            // The last loop sample now equals the sample just before the loop start,
+            // so jumping back to the start continues the original audio exactly.
+            QCOMPARE(x[static_cast<size_t>(loop.end)], o[static_cast<size_t>(loop.start - 1)]);
+            // Audio outside the fade is untouched.
+            QCOMPARE(x[static_cast<size_t>(loop.end - length)], o[static_cast<size_t>(loop.end - length)]);
+            QCOMPARE(x[static_cast<size_t>(loop.end + 1)], o[static_cast<size_t>(loop.end + 1)]);
+            QCOMPARE(x[static_cast<size_t>(loop.start)], o[static_cast<size_t>(loop.start)]);
+        }
+        QVERIFY(AudioOps::peak(audio) <= AudioOps::peak(original));
+    }
+
+    void crossfadeIsLimitedByAudioBeforeStart()
+    {
+        Channels audio = tone(440.0, 44100, 1.0);
+        QCOMPARE(LoopFinder::crossfade(audio, LoopPoints {1000, 40000}, 5000), int64_t(1000));
+        QCOMPARE(LoopFinder::crossfade(audio, LoopPoints {20000, 20999}, 5000), int64_t(1000));
+    }
+
     void silenceHasNoLoop()
     {
         const Channels audio = {std::vector<float>(44100, 0.0f)};

@@ -18,6 +18,7 @@ class QLineEdit;
 class QProgressBar;
 class QPushButton;
 class QScrollArea;
+class QSpinBox;
 class QThread;
 
 class ExtractWorker;
@@ -35,11 +36,13 @@ public:
 
 protected:
     void closeEvent(QCloseEvent* event) override;
+    void showEvent(QShowEvent* event) override;
 
 private:
     QWidget* buildInstrumentBox();
     QWidget* buildKeyboardBox();
     QWidget* buildSettingsBox();
+    QWidget* buildOutputBox();
     QWidget* buildActionRow();
 
     void populatePlugins(const QList<PluginInfo>& list);
@@ -53,6 +56,8 @@ private:
     ExtractSettings currentSettings() const;
     void setExtracting(bool extracting);
     void updateState();
+    void updateCrossfadeEnabled();
+    void alignStatusBar();
     void applyDefaults();
     // Live audio, so the instrument can be heard while playing it in its editor.
     void startMonitor();
@@ -71,7 +76,7 @@ private:
     QPushButton* loadButton = nullptr;
     QPushButton* editorButton = nullptr;
     QPushButton* rescanButton = nullptr;
-    QLabel* pluginStatus = nullptr;
+    QLabel* pluginStatus = nullptr; // status bar: loaded instrument
 
     // Keys
     QScrollArea* keyboardScroll = nullptr;
@@ -86,12 +91,13 @@ private:
     QComboBox* sampleRateCombo = nullptr;
     QCheckBox* normalizeCheck = nullptr;
     QCheckBox* loopCheck = nullptr;
+    QCheckBox* crossfadeCheck = nullptr;
+    QSpinBox* crossfadeSpin = nullptr; // % of the loop length
     QLineEdit* nameEdit = nullptr;
     QLineEdit* folderEdit = nullptr;
-    QLabel* exampleLabel = nullptr;
 
     // Actions
     QProgressBar* progressBar = nullptr;
-    QLabel* progressLabel = nullptr;
+    QLabel* statusMessage = nullptr; // status bar: instructions and progress
     QPushButton* extractButton = nullptr;
 };

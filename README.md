@@ -17,7 +17,7 @@ The first configure downloads the Steinberg VST3 SDK (MIT license).
 
 ## Use
 
-1. Pick an instrument, click **Load**, and choose a sound in the editor window. The
+1. Pick an instrument, click **Load**, then click **Open Editor** and choose a sound. The
    instrument plays live through your Mac's audio output, so you can hear it while you
    play it in the editor. Live audio pauses during an extraction.
    Notes are sent on MIDI channel 1. In Kontakt, make sure the instrument you want is on
@@ -28,7 +28,8 @@ The first configure downloads the Steinberg VST3 SDK (MIT license).
    and Shift+click selects a range.
 3. Pick the dynamics marking (ppp = velocity 16 up to fff = 127), then set the duration, channels, bit depth, sample rate, normalize,
    name and output folder.
-4. Click **Extract**. Each key is saved as `<Name><key>.wav`, for example `RealStr2P47.wav`.
+4. Click **Extract**. Each key is saved as `<Name><key>.wav` with a three-digit key, for
+   example `RealStrF047.wav`, so the files sort by key when sorted by name.
 
 ## What is in each file
 
@@ -41,7 +42,11 @@ The first configure downloads the Steinberg VST3 SDK (MIT license).
   - The loop end is near the end of the file; the start comes after the attack.
   - Both points sit on upward zero crossings, and the pair is chosen so the waveform and
     loudness match across the jump.
-  - The audio itself is not changed (no crossfade).
+  - **Crossfade** (off by default; tick it to use it, length default 50%): blends the end
+    of the loop into the audio just before the loop start. The length is a percentage of
+    the loop length, so 50% of a 200 ms loop is 100 ms. The jump back is then seamless, and any volume difference fades out
+    gradually. It is shortened automatically if there isn't enough audio before the loop
+    start. With Crossfade off, the audio is not changed.
 - Mono is the average of the left and right channels.
 - The WAV has a standard 44-byte header. A `smpl` chunk after the audio stores the key as
   the root note, which many samplers use to map the sample automatically.
