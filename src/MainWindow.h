@@ -54,6 +54,7 @@ private:
     void addGridSetting(QGridLayout* grid, int row, int column, const QString& text, QWidget* control,
                         QLayout* controlLayout = nullptr);
     void alignFormLabels();
+    static void matchDropdownPadding(std::initializer_list<QWidget*> inputs);
     QWidget* buildActionRow();
 
     void populatePlugins(const QList<PluginInfo>& list);

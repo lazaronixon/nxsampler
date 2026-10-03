@@ -72,6 +72,7 @@ MainWindow::MainWindow()
     layout->addWidget(buildLoopBox());
     layout->addWidget(buildOutputBox());
     alignFormLabels();
+    matchDropdownPadding({nameEdit, folderEdit, durationSpin, crossfadeSpin});
     layout->addStretch(); // extra window height goes here, so the panels keep their size
     layout->addWidget(buildActionRow());
     setCentralWidget(central);
@@ -299,6 +300,27 @@ void MainWindow::addGridSetting(QGridLayout* grid, int row, int column, const QS
         grid->addLayout(controlLayout, row, column + 1);
     else
         grid->addWidget(control, row, column + 1);
+}
+
+void MainWindow::matchDropdownPadding(std::initializer_list<QWidget*> inputs)
+{
+#if defined(Q_OS_MACOS)
+    // macOS indents dropdown text much more than text-field text. Extra left padding
+    // (measured against QComboBox) makes typed values start where dropdown values do.
+    // Spin boxes need a little less because their frame sits further left.
+    constexpr int kLineEditPadding = 10;
+    constexpr int kSpinBoxPadding = 8;
+    for (QWidget* input : inputs)
+    {
+        if (auto* edit = qobject_cast<QLineEdit*>(input))
+            edit->setTextMargins(kLineEditPadding, 0, 0, 0);
+        else if (auto* spin = qobject_cast<QAbstractSpinBox*>(input))
+            if (auto* edit = spin->findChild<QLineEdit*>())
+                edit->setTextMargins(kSpinBoxPadding, 0, 0, 0);
+    }
+#else
+    Q_UNUSED(inputs); // other styles already pad text fields and dropdowns alike
+#endif
 }
 
 void MainWindow::alignFormLabels()
