@@ -225,6 +225,9 @@ QWidget* MainWindow::buildSettingsBox()
     normalizeCheck = new QCheckBox;
     right->addRow(tr("Normalize:"), normalizeCheck);
 
+    loopCheck = new QCheckBox;
+    right->addRow(tr("Loop:"), loopCheck);
+
     nameEdit = new QLineEdit;
     nameEdit->setPlaceholderText(QStringLiteral("RealStrF"));
     nameEdit->setValidator(new QRegularExpressionValidator(
@@ -395,6 +398,7 @@ ExtractSettings MainWindow::currentSettings() const
     s.bitsPerSample = bitsGroup->checkedId();
     s.sampleRate = sampleRateCombo->currentData().toInt();
     s.normalize = normalizeCheck->isChecked();
+    s.loop = loopCheck->isChecked();
     s.name = nameEdit->text().trimmed();
     s.folder = folderEdit->text().trimmed();
     return s;
@@ -493,7 +497,7 @@ void MainWindow::setExtracting(bool value)
         editor->setEnabled(!value);
     for (QWidget* w : std::initializer_list<QWidget*>{pluginCombo, loadButton, editorButton, rescanButton,
                                                       keyboard, dynamicsCombo, durationSpin, sampleRateCombo,
-                                                      normalizeCheck, nameEdit, folderEdit})
+                                                      normalizeCheck, loopCheck, nameEdit, folderEdit})
         w->setEnabled(!value);
     for (auto* button : channelsGroup->buttons())
         button->setEnabled(!value);
@@ -542,6 +546,7 @@ void MainWindow::applyDefaults()
     bitsGroup->button(16)->setChecked(true);
     sampleRateCombo->setCurrentIndex(sampleRateCombo->findData(44100));
     normalizeCheck->setChecked(true);
+    loopCheck->setChecked(true);
     folderEdit->setText(QStandardPaths::writableLocation(QStandardPaths::MusicLocation) +
                         QStringLiteral("/NXSampler"));
 }

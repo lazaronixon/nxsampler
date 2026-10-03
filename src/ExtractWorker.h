@@ -20,6 +20,7 @@ struct ExtractSettings
     int bitsPerSample = 16;   // 8 or 16
     int sampleRate = 44100;
     bool normalize = true;
+    bool loop = true;         // find a sustain loop and store it in the file
     QString name;             // file prefix, e.g. RealStr2P
     QString folder;
 

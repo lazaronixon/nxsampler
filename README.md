@@ -33,9 +33,15 @@ The first configure downloads the Steinberg VST3 SDK (MIT license).
 ## What is in each file
 
 - The note is held for the whole duration and the file is cut at exactly that length,
-  with no release and no fade, so you can set loop points on the keyboard.
+  with no release and no fade.
 - **Normalize on:** each file is peak-normalized to 0 dBFS on its own, like Logic Pro.
   **Off:** the instrument's own level is kept, and anything above full scale is clipped.
+- **Loop on:** the app finds the most seamless sustain loop and stores it as a forward loop
+  in the `smpl` chunk.
+  - The loop end is near the end of the file; the start comes after the attack.
+  - Both points sit on upward zero crossings, and the pair is chosen so the waveform and
+    loudness match across the jump.
+  - The audio itself is not changed (no crossfade).
 - Mono is the average of the left and right channels.
 - The WAV has a standard 44-byte header. A `smpl` chunk after the audio stores the key as
   the root note, which many samplers use to map the sample automatically.

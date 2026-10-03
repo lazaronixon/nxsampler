@@ -77,10 +77,29 @@ private slots:
         QVERIFY(dir.isValid());
         const QString path = dir.filePath("RealStr2P47.wav");
         QString error;
-        QVERIFY(WavWriter::write(path, {0, 0, 1, 0}, {1, 44100, 16}, 47, &error));
+        QVERIFY(WavWriter::write(path, {0, 0, 1, 0}, {1, 44100, 16}, 47, std::nullopt, &error));
         QFile file(path);
         QVERIFY(file.open(QIODevice::ReadOnly));
         QCOMPARE(file.size(), qint64(44 + 4 + 8 + 36));
+    }
+
+    void loopIsStoredInSmplChunk()
+    {
+        const std::vector<uint8_t> pcm(2000, 0);
+        const QByteArray wav = WavWriter::build(pcm, {1, 44100, 16}, 60, LoopPoints {200, 950});
+
+        const int smpl = 44 + 2000;
+        QCOMPARE(wav.mid(smpl, 4), QByteArray("smpl"));
+        QCOMPARE(u32(wav, smpl + 4), 60u);           // 36-byte header + one 24-byte loop
+        QCOMPARE(u32(wav, smpl + 8 + 12), 60u);      // MIDI unity note
+        QCOMPARE(u32(wav, smpl + 8 + 28), 1u);       // number of loops
+        const int loop = smpl + 8 + 36;
+        QCOMPARE(u32(wav, loop + 4), 0u);            // forward loop
+        QCOMPARE(u32(wav, loop + 8), 200u);          // start frame
+        QCOMPARE(u32(wav, loop + 12), 950u);         // end frame (inclusive)
+        QCOMPARE(u32(wav, loop + 20), 0u);           // play forever
+        QCOMPARE(u32(wav, 4), static_cast<uint32_t>(wav.size() - 8));
+        QCOMPARE(wav.size(), loop + 24);
     }
 };
 

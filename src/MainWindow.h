@@ -85,6 +85,7 @@ private:
     QButtonGroup* bitsGroup = nullptr;
     QComboBox* sampleRateCombo = nullptr;
     QCheckBox* normalizeCheck = nullptr;
+    QCheckBox* loopCheck = nullptr;
     QLineEdit* nameEdit = nullptr;
     QLineEdit* folderEdit = nullptr;
     QLabel* exampleLabel = nullptr;

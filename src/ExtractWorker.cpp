@@ -1,5 +1,6 @@
 #include "ExtractWorker.h"
 
+#include "LoopFinder.h"
 #include "Vst3Host.h"
 #include "WavWriter.h"
 
@@ -80,8 +81,17 @@ void ExtractWorker::run()
         else
             AudioOps::clamp(audio);
 
-        if (AudioOps::peak(audio) == 0.0f)
+        const bool silent = AudioOps::peak(audio) == 0.0f;
+        if (silent)
             errors.append(QStringLiteral("Key %1: the instrument produced silence.").arg(key));
+
+        std::optional<LoopPoints> loop;
+        if (settings.loop && !silent)
+        {
+            loop = LoopFinder::find(audio, settings.sampleRate);
+            if (!loop)
+                errors.append(QStringLiteral("Key %1: no loop point found; saved without a loop.").arg(key));
+        }
 
         WavFormat format;
         format.channels = settings.channels;
@@ -90,7 +100,7 @@ void ExtractWorker::run()
 
         const QString path = settings.filePath(key);
         QString error;
-        if (WavWriter::write(path, AudioOps::toPcm(audio, settings.bitsPerSample), format, key, &error))
+        if (WavWriter::write(path, AudioOps::toPcm(audio, settings.bitsPerSample), format, key, loop, &error))
             written.append(path);
         else
             errors.append(QStringLiteral("Key %1: %2").arg(key).arg(error));

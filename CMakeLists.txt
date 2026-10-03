@@ -59,6 +59,8 @@ target_link_libraries(nx_vst3_hosting PUBLIC sdk_hosting "-framework CoreFoundat
 add_library(nx_core STATIC
     src/AudioOps.cpp
     src/AudioOps.h
+    src/LoopFinder.cpp
+    src/LoopFinder.h
     src/WavWriter.cpp
     src/WavWriter.h
 )
@@ -102,3 +104,7 @@ add_test(NAME test_audioops COMMAND test_audioops)
 qt_add_executable(test_wavwriter tests/test_wavwriter.cpp)
 target_link_libraries(test_wavwriter PRIVATE nx_core Qt6::Test)
 add_test(NAME test_wavwriter COMMAND test_wavwriter)
+
+qt_add_executable(test_loopfinder tests/test_loopfinder.cpp)
+target_link_libraries(test_loopfinder PRIVATE nx_core Qt6::Test)
+add_test(NAME test_loopfinder COMMAND test_loopfinder)
