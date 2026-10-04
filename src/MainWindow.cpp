@@ -227,12 +227,12 @@ QWidget* MainWindow::buildSettingsBox()
 
 QWidget* MainWindow::buildLoopBox()
 {
-    auto* box = new QGroupBox(tr("Loop"));
+    auto* box = new QGroupBox(tr("Auto Loop"));
     QGridLayout* grid = newTwoColumnGrid(box);
 
     loopCheck = new QCheckBox;
     loopCheck->setToolTip(tr("Find the most seamless loop in each note and store it in the WAV file."));
-    addGridSetting(grid, 0, 0, tr("Auto loop:"), nullptr, checkRow(loopCheck));
+    addGridSetting(grid, 0, 0, tr("Enabled:"), nullptr, checkRow(loopCheck));
 
     crossfadeCheck = new QCheckBox;
     crossfadeSpin = new QSpinBox;
