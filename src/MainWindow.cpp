@@ -22,6 +22,7 @@
 #include <QProgressBar>
 #include <QPushButton>
 #include <QRegularExpressionValidator>
+#include <QScreen>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSpinBox>
@@ -79,6 +80,7 @@ MainWindow::MainWindow()
 
     // Status bar: instructions and progress on the left, instrument state on the right.
     statusMessage = new QLabel;
+    statusMessage->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred); // long text clips, never widens
     pluginStatus = new QLabel(tr("No instrument loaded."));
     statusBar()->setSizeGripEnabled(false);
     statusBar()->addWidget(statusMessage, 1);
@@ -93,6 +95,12 @@ MainWindow::MainWindow()
     QTimer::singleShot(0, this, &MainWindow::scanPlugins);
 
     updateState();
+
+    // Resizable, but with no maximize or full-screen button. The window is centred on
+    // the screen in showEvent(), once the title bar's size is known.
+    setWindowFlag(Qt::WindowMaximizeButtonHint, false);
+    setWindowFlag(Qt::WindowFullscreenButtonHint, false);
+    adjustSize();
 
     // Start the keyboard around middle C.
     QTimer::singleShot(0, this, [this] {
@@ -137,7 +145,8 @@ QWidget* MainWindow::buildInstrumentBox()
     pluginCombo = new QComboBox;
     pluginCombo->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
     pluginCombo->setMinimumContentsLength(30);
-    loadButton = new QPushButton(tr("Load"));
+    loadButton = new QPushButton(tr("Select"));
+    loadButton->setToolTip(tr("Load the chosen instrument."));
     editorButton = new QPushButton(tr("Open"));
     editorButton->setToolTip(tr("Open the instrument's own window to choose and play a sound."));
 
@@ -623,7 +632,7 @@ void MainWindow::updateState()
 
     QString missing;
     if (!host->isLoaded())
-        missing = tr("Pick an instrument and click Load.");
+        missing = tr("Pick an instrument and click Select.");
     else if (count == 0)
         missing = tr("Click Open to choose a sound, then select keys: click to toggle, "
                      "drag to paint, Shift+click for a range.");
@@ -657,11 +666,18 @@ void MainWindow::showEvent(QShowEvent* event)
 {
     QMainWindow::showEvent(event);
     QTimer::singleShot(0, this, &MainWindow::alignStatusBar);
+
+    if (!centred)
+    {
+        centred = true;
+        // Centre the whole window, title bar included, on the screen it opens on.
+        if (QScreen* display = screen())
+            move(pos() + display->availableGeometry().center() - frameGeometry().center());
+    }
 }
 
 void MainWindow::alignStatusBar()
-{
-    // Line the status bar text up with the panels above. The status bar adds its own
+{    // Line the status bar text up with the panels above. The status bar adds its own
     // spacing, which depends on the style, so measure instead of guessing.
     const QMargins content = centralWidget()->layout()->contentsMargins();
 

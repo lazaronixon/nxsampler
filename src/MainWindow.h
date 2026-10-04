@@ -84,6 +84,7 @@ private:
     QThread* workerThread = nullptr;
     ExtractWorker* worker = nullptr;
     bool extracting = false;
+    bool centred = false; // the window is centred on its first show
 
     // Instrument
     QComboBox* pluginCombo = nullptr;

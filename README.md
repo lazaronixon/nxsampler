@@ -47,7 +47,7 @@ release.
 
 ## Use
 
-1. Pick an instrument, click **Load**, then click **Open** and choose a sound. The
+1. Pick an instrument, click **Select**, then click **Open** and choose a sound. The
    instrument plays live through your computer's audio output, so you can hear it while
    you play it in the editor. Live audio pauses during an extraction.
    Notes are sent on MIDI channel 1. In Kontakt, make sure the instrument you want is on
