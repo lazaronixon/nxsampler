@@ -59,37 +59,39 @@ struct Preset
     bool loop;
     bool crossfade;
     bool trim;
-    int keyStep;  // selects every Nth key from firstKey to lastKey (1 = every key)
-    int firstKey;
+    int keyStep;  // selects every Nth key from firstKey, always including lastKey (1 = every key)
+    int firstKey; // each range covers the real instruments in that factory bank
     int lastKey;
 };
 
-// The Pa3X Le's 61 keys, C2–C7.
-constexpr int kKeyboardLow = 36;
-constexpr int kKeyboardHigh = 96;
-// General MIDI drum map, from Acoustic Bass Drum to Open Triangle.
-constexpr int kDrumLow = 35;
-constexpr int kDrumHigh = 81;
+// The Pa3X Le's 76 keys, E1–G7.
+constexpr int kKeyboardLow = 28;
+constexpr int kKeyboardHigh = 103;
+// Every key of a GM2/Korg drum kit (High Q to Open Surdo), beyond the core GM 35–81.
+// In a kit each key is a different drum, so an unsampled key would play the wrong drum.
+constexpr int kDrumLow = 27;
+constexpr int kDrumHigh = 87;
 
 const Preset kPresets[] = {
     // Durations assume the plugin's modulation effects (rotary, phaser, chorus, LFO) are
     // off and added back on the keyboard, which keeps loops short for its 192 MB memory.
     {"Piano", 3.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
     {"E. Piano", 3.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
-    {"Mallet & Bell", 4.0, false, false, true, 3, kKeyboardLow, kKeyboardHigh}, // fade naturally: one-shots
-    {"Accordion", 3.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
+    {"Mallet & Bell", 6.0, false, false, true, 3, 36, 96}, // C2–C7, marimba/vibes; one-shots, bells ring long
+    {"Accordion", 3.0, true, true, false, 3, 53, 93},      // F3–A6, the treble keyboard
     {"Organ", 2.0, true, true, false, 4, kKeyboardLow, kKeyboardHigh},
-    {"Guitar", 3.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
-    {"Strings & Vocal", 3.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
-    {"Trumpet & Trbn.", 2.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
-    {"Brass", 2.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
-    {"Sax", 2.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
-    {"Woodwind", 2.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
-    {"Synth Pad", 4.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
-    {"Synth Lead", 2.0, true, true, false, 4, kKeyboardLow, kKeyboardHigh},
-    {"Ethnic", 3.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
-    {"Bass", 2.0, true, true, false, 4, kKeyboardLow, kKeyboardHigh},
-    {"Drum & SFX", 5.0, false, false, true, 1, kDrumLow, kDrumHigh}, // each kit key is a different drum
+    {"Guitar", 3.0, true, true, false, 3, 40, 88}, // E2–E6
+    {"Strings & Vocal", 3.0, true, true, false, 3, kKeyboardLow, 96}, // E1–C7, contrabass to violin
+    {"Trumpet & Trbn.", 3.0, true, true, false, 3, 40, 84},          // E2–C6; 3 s: delayed vibrato
+    {"Brass", 2.0, true, true, false, 3, 40, 84},                    // E2–C6, sections
+    {"Sax", 3.0, true, true, false, 3, 37, 88},                      // C#2–E6; 3 s: delayed vibrato
+    {"Woodwind", 3.0, true, true, false, 3, 50, 96},                 // D3–C7, clarinet/oboe/flute; 3 s: vibrato
+    {"Synth Pad", 4.0, true, true, false, 4, kKeyboardLow, kKeyboardHigh}, // synthetic: every 4th key is enough
+    {"Synth Lead", 2.0, true, true, false, 4, 36, 103}, // C2–G7
+    {"Ethnic", 3.0, true, true, false, 3, 40, 93},      // E2–A6, oud to mandolin
+    {"Bass", 2.0, true, true, false, 4, 24, 72},        // C1–C5
+    // 10 s: only a limit, since Auto Trim cuts each sound to its own length; long SFX fit too.
+    {"Drum & SFX", 10.0, false, false, true, 1, kDrumLow, kDrumHigh}, // each kit key is a different drum
 };
 
 class WaitCursor
@@ -255,6 +257,8 @@ void MainWindow::applyPreset(int index)
     QList<int> keys;
     for (int key = preset.firstKey; key <= preset.lastKey; key += preset.keyStep)
         keys.append(key);
+    if (keys.last() != preset.lastKey)
+        keys.append(preset.lastKey); // the top of the range always gets its own sample
     keyboard->setSelectedKeys(keys);
 }
 
