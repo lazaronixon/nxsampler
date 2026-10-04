@@ -51,6 +51,35 @@ const Dynamic kDynamics[] = {
 
 constexpr int kDefaultVelocity = 96; // f
 
+// Recommended settings per Korg Pa3X factory sound category, in the keyboard's order.
+struct Preset
+{
+    const char* name;
+    double durationSec;
+    bool loop;
+    bool crossfade;
+    bool trim;
+};
+
+const Preset kPresets[] = {
+    {"Piano", 3.0, true, true, false},
+    {"E. Piano", 3.0, true, true, false},
+    {"Mallet & Bell", 4.0, true, true, false},
+    {"Accordion", 3.0, true, true, false},
+    {"Organ", 3.0, true, true, false},
+    {"Guitar", 3.0, true, true, false},
+    {"Strings & Vocal", 4.0, true, true, false},
+    {"Trumpet & Trbn.", 3.0, true, true, false},
+    {"Brass", 3.0, true, true, false},
+    {"Sax", 3.0, true, true, false},
+    {"Woodwind", 3.0, true, true, false},
+    {"Synth Pad", 4.0, true, true, false},
+    {"Synth Lead", 2.0, true, false, false},
+    {"Ethnic", 3.0, true, true, false},
+    {"Bass", 2.0, true, false, false},
+    {"Drum & SFX", 4.0, false, false, true}, // one-shots: trimmed, not looped
+};
+
 class WaitCursor
 {
 public:
@@ -69,6 +98,7 @@ MainWindow::MainWindow()
     auto* layout = new QVBoxLayout(central);
     layout->addWidget(buildInstrumentBox());
     layout->addWidget(buildKeyboardBox());
+    layout->addWidget(buildPresetsBox());
     layout->addWidget(buildSettingsBox());
     layout->addWidget(buildLoopBox());
     layout->addWidget(buildTrimBox());
@@ -178,6 +208,35 @@ QWidget* MainWindow::buildKeyboardBox()
 
     connect(keyboard, &KeyboardWidget::selectionChanged, this, &MainWindow::updateState);
     return box;
+}
+
+QWidget* MainWindow::buildPresetsBox()
+{
+    auto* box = new QGroupBox(tr("Presets"));
+    QGridLayout* grid = newTwoColumnGrid(box);
+
+    presetCombo = new QComboBox;
+    for (int i = 0; i < static_cast<int>(std::size(kPresets)); ++i)
+        presetCombo->addItem(tr(kPresets[i].name), i);
+    presetCombo->setToolTip(tr("Fills in Duration, Auto Loop, Crossfade and Auto Trim "
+                               "for this kind of sound."));
+    addGridSetting(grid, 0, 0, tr("Category:"), presetCombo, nullptr, 4); // full width
+
+    connect(presetCombo, &QComboBox::currentIndexChanged, this, &MainWindow::applyPreset);
+    return box;
+}
+
+void MainWindow::applyPreset(int index)
+{
+    if (index < 0 || index >= static_cast<int>(std::size(kPresets)))
+        return;
+    const Preset& preset = kPresets[index];
+    durationSpin->setValue(preset.durationSec);
+    loopCheck->setChecked(preset.loop);
+    crossfadeCheck->setChecked(preset.crossfade);
+    trimCheck->setChecked(preset.trim);
+    updateCrossfadeEnabled();
+    updateTrimEnabled();
 }
 
 QWidget* MainWindow::buildSettingsBox()
@@ -316,15 +375,15 @@ QGridLayout* MainWindow::newTwoColumnGrid(QWidget* box)
 }
 
 void MainWindow::addGridSetting(QGridLayout* grid, int row, int column, const QString& text, QWidget* control,
-                                QLayout* controlLayout)
+                                QLayout* controlLayout, int columnSpan)
 {
     auto* label = new QLabel(text);
     alignedLabels.append(label);
     grid->addWidget(label, row, column, Qt::AlignRight | Qt::AlignVCenter);
     if (controlLayout)
-        grid->addLayout(controlLayout, row, column + 1);
+        grid->addLayout(controlLayout, row, column + 1, 1, columnSpan);
     else
-        grid->addWidget(control, row, column + 1);
+        grid->addWidget(control, row, column + 1, 1, columnSpan);
 }
 
 void MainWindow::matchDropdownPadding(std::initializer_list<QWidget*> inputs)
@@ -634,7 +693,7 @@ void MainWindow::setExtracting(bool value)
     // The plugin must not be touched from the UI while the worker renders with it.
     if (editor)
         editor->setEnabled(!value);
-    for (QWidget* w : std::initializer_list<QWidget*>{pluginCombo, loadButton, editorButton,
+    for (QWidget* w : std::initializer_list<QWidget*>{pluginCombo, loadButton, editorButton, presetCombo,
                                                       keyboard, dynamicsCombo, durationSpin, sampleRateCombo,
                                                       bitsCombo, channelsCombo, normalizeCheck, loopCheck,
                                                       trimCheck, nameEdit, folderEdit})
@@ -702,6 +761,11 @@ void MainWindow::applyDefaults()
     trimThresholdSpin->setValue(-60);
     trimFadeSpin->setValue(10);
     updateTrimEnabled();
+
+    // Start with the first preset (Piano). Selecting index 0 doesn't emit a change when it
+    // is already selected, so apply it explicitly.
+    presetCombo->setCurrentIndex(0);
+    applyPreset(0);
     folderEdit->setText(QStandardPaths::writableLocation(QStandardPaths::MusicLocation) +
                         QStringLiteral("/NXSampler"));
 }

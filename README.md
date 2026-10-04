@@ -58,10 +58,43 @@ release.
    installing new plugins.
 2. Select keys on the keyboard. Click toggles a key, dragging paints over several keys,
    and Shift+click selects a range.
-3. Pick the dynamics marking (ppp = velocity 16 up to fff = 127), then set the duration, channels, bit depth, sample rate, normalize,
-   name and output folder.
-4. Click **Extract**. Each key is saved as `<Name><key>.wav` with a three-digit key, for
+3. In **Presets**, pick the sound's category. This fills in Duration, Auto Loop,
+   Crossfade and Auto Trim with good values for that kind of sound (see the table below);
+   you can still change any of them afterwards.
+4. Pick the dynamics marking (ppp = velocity 16 up to fff = 127), then check the sample
+   rate, bit depth, channels (Mono by default) and normalize, and set the name and output
+   folder.
+5. Click **Extract**. Each key is saved as `<Name><key>.wav` with a three-digit key, for
    example `RealStrF047.wav`, so the files sort by key when sorted by name.
+
+## Presets
+
+The 16 factory sound categories of the Korg Pa3X keyboards:
+
+| Category | Duration | Auto Loop | Crossfade | Auto Trim |
+|---|---|---|---|---|
+| Piano | 3 s | on | on | off |
+| E. Piano | 3 s | on | on | off |
+| Mallet & Bell | 4 s | on | on | off |
+| Accordion | 3 s | on | on | off |
+| Organ | 3 s | on | on | off |
+| Guitar | 3 s | on | on | off |
+| Strings & Vocal | 4 s | on | on | off |
+| Trumpet & Trbn. | 3 s | on | on | off |
+| Brass | 3 s | on | on | off |
+| Sax | 3 s | on | on | off |
+| Woodwind | 3 s | on | on | off |
+| Synth Pad | 4 s | on | on | off |
+| Synth Lead | 2 s | on | off | off |
+| Ethnic | 3 s | on | on | off |
+| Bass | 2 s | on | off | off |
+| Drum & SFX | 4 s | off | off | on |
+
+Short, percussive sounds inside a looped category (marimba, xylophone, kalimba, pizzicato
+strings, synth stabs) usually work better with the **Drum & SFX** preset.
+
+Crossfade, where on, uses 30% of the loop. Presets don't change Channels, which starts
+as Mono. NXSampler starts with the Piano preset.
 
 ## What is in each file
 
