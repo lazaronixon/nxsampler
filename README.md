@@ -47,14 +47,15 @@ release.
 
 ## Use
 
-1. Pick an instrument, click **Load**, then click **Open Editor** and choose a sound. The
+1. Pick an instrument, click **Load**, then click **Open** and choose a sound. The
    instrument plays live through your computer's audio output, so you can hear it while
    you play it in the editor. Live audio pauses during an extraction.
    Notes are sent on MIDI channel 1. In Kontakt, make sure the instrument you want is on
    channel 1 (or Omni) and is the only one in the rack.
    Instruments come from the standard VST3 folders: `/Library/Audio/Plug-Ins/VST3` and
    `~/Library/Audio/Plug-Ins/VST3` on macOS, `C:\Program Files\Common Files\VST3` on
-   Windows. Click **Rescan** after installing new plugins.
+   Windows. The folders are scanned each time NXSampler starts, so restart it after
+   installing new plugins.
 2. Select keys on the keyboard. Click toggles a key, dragging paints over several keys,
    and Shift+click selects a range.
 3. Pick the dynamics marking (ppp = velocity 16 up to fff = 127), then set the duration, channels, bit depth, sample rate, normalize,

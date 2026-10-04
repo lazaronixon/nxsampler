@@ -20,7 +20,7 @@ namespace Vst3Scanner {
 // classes that are instruments. Bundles that fail to load are reported in `errors`.
 QList<PluginInfo> scan(QStringList* errors = nullptr);
 
-// QSettings cache, so the slow scan only runs when the user asks for it.
+// QSettings cache, so the list shows immediately while a fresh scan runs at startup.
 QList<PluginInfo> loadCached();
 void saveCache(const QList<PluginInfo>& plugins);
 

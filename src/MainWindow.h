@@ -58,7 +58,7 @@ private:
     QWidget* buildActionRow();
 
     void populatePlugins(const QList<PluginInfo>& list);
-    void rescanPlugins();
+    void scanPlugins();
     void loadSelectedPlugin();
     void openEditor();
     void browseFolder();
@@ -89,13 +89,11 @@ private:
     QComboBox* pluginCombo = nullptr;
     QPushButton* loadButton = nullptr;
     QPushButton* editorButton = nullptr;
-    QPushButton* rescanButton = nullptr;
     QLabel* pluginStatus = nullptr; // status bar: loaded instrument
 
     // Keys
     QScrollArea* keyboardScroll = nullptr;
     KeyboardWidget* keyboard = nullptr;
-    QLabel* selectionLabel = nullptr;
 
     // Settings
     QComboBox* dynamicsCombo = nullptr; // item data = MIDI velocity

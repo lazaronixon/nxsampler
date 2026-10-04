@@ -18,9 +18,6 @@ public:
     explicit KeyboardWidget(QWidget* parent = nullptr);
 
     QList<int> selectedKeys() const;
-    void setSelectedKeys(const QList<int>& keys);
-    void selectAll();
-    void clearSelection();
 
     // Horizontal centre of a key, for scrolling it into view.
     int keyCenterX(int key) const;

@@ -38,7 +38,8 @@ bool Vst3Host::load(const PluginInfo& plugin, QString* error)
     if (!uid)
     {
         if (error)
-            *error = QStringLiteral("Invalid plugin class ID %1. Try Rescan.").arg(plugin.classId);
+            *error = QStringLiteral("Invalid plugin class ID %1. Restart NXSampler to scan the plugins again.")
+                         .arg(plugin.classId);
         return false;
     }
 
@@ -72,7 +73,7 @@ bool Vst3Host::load(const PluginInfo& plugin, QString* error)
     }
 
     if (error)
-        *error = QStringLiteral("Could not create %1. Try Rescan.").arg(plugin.name);
+        *error = QStringLiteral("Could not create %1. Restart NXSampler to scan the plugins again.").arg(plugin.name);
     return false;
 }
 

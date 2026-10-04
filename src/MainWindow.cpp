@@ -86,10 +86,11 @@ MainWindow::MainWindow()
 
     applyDefaults();
 
+    // Show the instruments found last time right away, then scan again so newly
+    // installed or removed plugins are picked up on every launch.
     plugins = Vst3Scanner::loadCached();
     populatePlugins(plugins);
-    if (!QSettings().value("pluginsScanned").toBool())
-        QTimer::singleShot(0, this, &MainWindow::rescanPlugins);
+    QTimer::singleShot(0, this, &MainWindow::scanPlugins);
 
     updateState();
 
@@ -137,18 +138,16 @@ QWidget* MainWindow::buildInstrumentBox()
     pluginCombo->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
     pluginCombo->setMinimumContentsLength(30);
     loadButton = new QPushButton(tr("Load"));
-    editorButton = new QPushButton(tr("Open Editor"));
-    rescanButton = new QPushButton(tr("Rescan"));
+    editorButton = new QPushButton(tr("Open"));
+    editorButton->setToolTip(tr("Open the instrument's own window to choose and play a sound."));
 
     layout->addWidget(pluginCombo, 0, 0);
     layout->addWidget(loadButton, 0, 1);
     layout->addWidget(editorButton, 0, 2);
-    layout->addWidget(rescanButton, 0, 3);
     layout->setColumnStretch(0, 1);
 
     connect(loadButton, &QPushButton::clicked, this, &MainWindow::loadSelectedPlugin);
     connect(editorButton, &QPushButton::clicked, this, &MainWindow::openEditor);
-    connect(rescanButton, &QPushButton::clicked, this, &MainWindow::rescanPlugins);
     return box;
 }
 
@@ -167,18 +166,6 @@ QWidget* MainWindow::buildKeyboardBox()
                                    keyboardScroll->horizontalScrollBar()->sizeHint().height() + 4);
     layout->addWidget(keyboardScroll);
 
-    auto* row = new QHBoxLayout;
-    auto* selectAll = new QPushButton(tr("Select All"));
-    auto* clear = new QPushButton(tr("Clear"));
-    selectionLabel = new QLabel;
-    row->addWidget(selectAll);
-    row->addWidget(clear);
-    row->addWidget(selectionLabel);
-    row->addStretch();
-    layout->addLayout(row);
-
-    connect(selectAll, &QPushButton::clicked, keyboard, &KeyboardWidget::selectAll);
-    connect(clear, &QPushButton::clicked, keyboard, &KeyboardWidget::clearSelection);
     connect(keyboard, &KeyboardWidget::selectionChanged, this, &MainWindow::updateState);
     return box;
 }
@@ -402,7 +389,7 @@ QWidget* MainWindow::buildActionRow()
 
 void MainWindow::populatePlugins(const QList<PluginInfo>& list)
 {
-    const QString previous = pluginCombo->currentData().toString(); // keep the selection across a rescan
+    const QString previous = pluginCombo->currentData().toString(); // keep the selection across a scan
     pluginCombo->clear();
     for (const auto& plugin : list)
         pluginCombo->addItem(plugin.displayName(), plugin.classId);
@@ -414,7 +401,7 @@ void MainWindow::populatePlugins(const QList<PluginInfo>& list)
     updateState();
 }
 
-void MainWindow::rescanPlugins()
+void MainWindow::scanPlugins()
 {
     QStringList errors;
     {
@@ -606,7 +593,7 @@ void MainWindow::setExtracting(bool value)
     // The plugin must not be touched from the UI while the worker renders with it.
     if (editor)
         editor->setEnabled(!value);
-    for (QWidget* w : std::initializer_list<QWidget*>{pluginCombo, loadButton, editorButton, rescanButton,
+    for (QWidget* w : std::initializer_list<QWidget*>{pluginCombo, loadButton, editorButton,
                                                       keyboard, dynamicsCombo, durationSpin, sampleRateCombo,
                                                       bitsCombo, channelsCombo, normalizeCheck, loopCheck,
                                                       nameEdit, folderEdit})
@@ -626,8 +613,6 @@ void MainWindow::updateCrossfadeEnabled()
 void MainWindow::updateState()
 {
     const int count = static_cast<int>(keyboard->selectedKeys().size());
-    selectionLabel->setText(tr("%n key(s) selected", nullptr, count));
-
     const QString name = nameEdit->text().trimmed();
 
     if (extracting)
@@ -640,7 +625,7 @@ void MainWindow::updateState()
     if (!host->isLoaded())
         missing = tr("Pick an instrument and click Load.");
     else if (count == 0)
-        missing = tr("Click Open Editor to choose a sound, then select keys: click to toggle, "
+        missing = tr("Click Open to choose a sound, then select keys: click to toggle, "
                      "drag to paint, Shift+click for a range.");
     else if (name.isEmpty())
         missing = tr("Enter a name.");

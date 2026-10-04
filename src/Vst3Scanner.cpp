@@ -99,7 +99,6 @@ void saveCache(const QList<PluginInfo>& plugins)
         settings.setValue("classId", plugins[i].classId);
     }
     settings.endArray();
-    settings.setValue("pluginsScanned", true);
 }
 
 } // namespace Vst3Scanner
