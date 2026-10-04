@@ -74,24 +74,25 @@ The 16 factory sound categories of the Korg Pa3X keyboards:
 | Category | Duration | Auto Loop | Crossfade | Auto Trim |
 |---|---|---|---|---|
 | Piano | 3 s | on | on | off |
-| E. Piano | 3 s | on | on | off |
-| Mallet & Bell | 4 s | on | on | off |
+| E. Piano | 4 s | on | on | off |
+| Mallet & Bell | 5 s | off | off | on |
 | Accordion | 3 s | on | on | off |
-| Organ | 3 s | on | on | off |
+| Organ | 4 s | on | on | off |
 | Guitar | 3 s | on | on | off |
 | Strings & Vocal | 4 s | on | on | off |
 | Trumpet & Trbn. | 3 s | on | on | off |
 | Brass | 3 s | on | on | off |
 | Sax | 3 s | on | on | off |
 | Woodwind | 3 s | on | on | off |
-| Synth Pad | 4 s | on | on | off |
-| Synth Lead | 2 s | on | off | off |
+| Synth Pad | 5 s | on | on | off |
+| Synth Lead | 3 s | on | on | off |
 | Ethnic | 3 s | on | on | off |
-| Bass | 2 s | on | off | off |
-| Drum & SFX | 4 s | off | off | on |
+| Bass | 2 s | on | on | off |
+| Drum & SFX | 5 s | off | off | on |
 
-Short, percussive sounds inside a looped category (marimba, xylophone, kalimba, pizzicato
-strings, synth stabs) usually work better with the **Drum & SFX** preset.
+Short, percussive sounds inside a looped category (muted guitars, pizzicato and spiccato
+strings, harp, scat voices, brass falls and hits, synth stabs, sequences and arps) usually
+work better with the **Drum & SFX** preset.
 
 Crossfade, where on, uses 30% of the loop. Presets don't change Channels, which starts
 as Mono. NXSampler starts with the Piano preset.
