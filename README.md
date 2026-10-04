@@ -74,14 +74,14 @@ release.
   - The loop end is near the end of the file; the start comes after the attack.
   - Both points sit on upward zero crossings, and the pair is chosen so the waveform and
     loudness match across the jump.
-  - **Crossfade** (off by default; tick it to use it, length default 50%): blends the end
+  - **Crossfade** (off by default; tick it to use it, length default 30%): blends the end
     of the loop into the audio just before the loop start. The length is a percentage of
     the loop length, so 50% of a 200 ms loop is 100 ms. The jump back is then seamless, and any volume difference fades out
     gradually. It is shortened automatically if there isn't enough audio before the loop
     start. With Crossfade off, the audio is not changed.
 - **Auto Trim** (off by default), for one-shots like drums and effects: cuts the silence at
   the end of each file.
-  - **Threshold** (default -50 dB) is measured from each sample's own peak: the file is cut
+  - **Threshold** (default -60 dB) is measured from each sample's own peak: the file is cut
     where the sound falls that far below its loudest point, so the result is the same with
     Normalize on or off.
   - **Fade out** (default 10 ms) is added after the cut point and fades to exactly zero, so

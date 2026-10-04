@@ -696,10 +696,10 @@ void MainWindow::applyDefaults()
     normalizeCheck->setChecked(true);
     loopCheck->setChecked(true);
     crossfadeCheck->setChecked(false);
-    crossfadeSpin->setValue(50);
+    crossfadeSpin->setValue(30);
     updateCrossfadeEnabled();
     trimCheck->setChecked(false);
-    trimThresholdSpin->setValue(-50);
+    trimThresholdSpin->setValue(-60);
     trimFadeSpin->setValue(10);
     updateTrimEnabled();
     folderEdit->setText(QStandardPaths::writableLocation(QStandardPaths::MusicLocation) +

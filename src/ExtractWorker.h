@@ -23,7 +23,7 @@ struct ExtractSettings
     bool loop = true;         // find a sustain loop and store it in the file
     int crossfadePercent = 0; // loop crossfade length as % of the loop length; 0 = off
     bool trim = false;        // cut the silent tail (one-shots); when on, no loop is written
-    int trimThresholdDb = -50; // relative to each sample's own peak
+    int trimThresholdDb = -60; // relative to each sample's own peak
     int trimFadeMs = 10;
     QString name;             // file prefix, e.g. RealStr2P
     QString folder;
