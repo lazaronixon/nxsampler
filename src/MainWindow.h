@@ -46,6 +46,7 @@ private:
     QWidget* buildKeyboardBox();
     QWidget* buildSettingsBox();
     QWidget* buildLoopBox();
+    QWidget* buildTrimBox();
     QWidget* buildOutputBox();
     QFormLayout* newForm(QWidget* box); // null box: a form to nest in another layout
     static QHBoxLayout* checkRow(QCheckBox* check, QWidget* extra = nullptr);
@@ -69,6 +70,7 @@ private:
     void setExtracting(bool extracting);
     void updateState();
     void updateCrossfadeEnabled();
+    void updateTrimEnabled();
     void alignStatusBar();
     void applyDefaults();
     // Live audio, so the instrument can be heard while playing it in its editor.
@@ -106,6 +108,9 @@ private:
     QCheckBox* loopCheck = nullptr;
     QCheckBox* crossfadeCheck = nullptr;
     QSpinBox* crossfadeSpin = nullptr; // % of the loop length
+    QCheckBox* trimCheck = nullptr;
+    QSpinBox* trimThresholdSpin = nullptr; // dB below each sample's peak
+    QSpinBox* trimFadeSpin = nullptr;      // ms
     QLineEdit* nameEdit = nullptr;
     QLineEdit* folderEdit = nullptr;
 

@@ -21,6 +21,11 @@ float normalize(Channels& audio);
 // Limits every sample to [-1, 1] so the integer conversion cannot wrap around.
 void clamp(Channels& audio);
 
+// Cuts the silent tail: everything after the last sample louder than `thresholdDb`
+// below the peak, plus `fadeFrames` of tail that is faded out to zero.
+// Returns the new length in frames. Silent audio is left unchanged.
+int64_t trimEnd(Channels& audio, float thresholdDb, int64_t fadeFrames);
+
 // Interleaves and converts to little-endian PCM as stored in a WAV file:
 // 16-bit signed or 8-bit unsigned (silence = 128).
 std::vector<uint8_t> toPcm(const Channels& audio, int bitsPerSample);

@@ -71,9 +71,10 @@ MainWindow::MainWindow()
     layout->addWidget(buildKeyboardBox());
     layout->addWidget(buildSettingsBox());
     layout->addWidget(buildLoopBox());
+    layout->addWidget(buildTrimBox());
     layout->addWidget(buildOutputBox());
     alignFormLabels();
-    matchDropdownPadding({nameEdit, folderEdit, durationSpin, crossfadeSpin});
+    matchDropdownPadding({nameEdit, folderEdit, durationSpin, crossfadeSpin, trimThresholdSpin, trimFadeSpin});
     layout->addStretch(); // extra window height goes here, so the panels keep their size
     layout->addWidget(buildActionRow());
     setCentralWidget(central);
@@ -247,6 +248,34 @@ QWidget* MainWindow::buildLoopBox()
 
     connect(loopCheck, &QCheckBox::toggled, this, &MainWindow::updateCrossfadeEnabled);
     connect(crossfadeCheck, &QCheckBox::toggled, this, &MainWindow::updateCrossfadeEnabled);
+
+    return box;
+}
+
+QWidget* MainWindow::buildTrimBox()
+{
+    auto* box = new QGroupBox(tr("Auto Trim"));
+    QGridLayout* grid = newTwoColumnGrid(box);
+
+    trimCheck = new QCheckBox;
+    trimCheck->setToolTip(tr("Cut the silence at the end of each note, for one-shots like drums "
+                             "and effects. When on, no loop is written even if Auto Loop is on."));
+    addGridSetting(grid, 0, 0, tr("Enabled:"), nullptr, checkRow(trimCheck));
+
+    trimThresholdSpin = new QSpinBox;
+    trimThresholdSpin->setRange(-120, -1);
+    trimThresholdSpin->setSuffix(tr(" dB"));
+    trimThresholdSpin->setToolTip(tr("Cut where the sound falls this far below its own loudest point."));
+    addGridSetting(grid, 0, 3, tr("Threshold:"), trimThresholdSpin);
+
+    trimFadeSpin = new QSpinBox;
+    trimFadeSpin->setRange(0, 1000);
+    trimFadeSpin->setSingleStep(5);
+    trimFadeSpin->setSuffix(tr(" ms"));
+    trimFadeSpin->setToolTip(tr("Fade-out added at the cut, so the end of the file doesn't click."));
+    addGridSetting(grid, 1, 3, tr("Fade out:"), trimFadeSpin);
+
+    connect(trimCheck, &QCheckBox::toggled, this, &MainWindow::updateTrimEnabled);
 
     return box;
 }
@@ -506,6 +535,9 @@ ExtractSettings MainWindow::currentSettings() const
     s.normalize = normalizeCheck->isChecked();
     s.loop = loopCheck->isChecked();
     s.crossfadePercent = crossfadeCheck->isChecked() ? crossfadeSpin->value() : 0;
+    s.trim = trimCheck->isChecked();
+    s.trimThresholdDb = trimThresholdSpin->value();
+    s.trimFadeMs = trimFadeSpin->value();
     s.name = nameEdit->text().trimmed();
     s.folder = folderEdit->text().trimmed();
     return s;
@@ -605,9 +637,10 @@ void MainWindow::setExtracting(bool value)
     for (QWidget* w : std::initializer_list<QWidget*>{pluginCombo, loadButton, editorButton,
                                                       keyboard, dynamicsCombo, durationSpin, sampleRateCombo,
                                                       bitsCombo, channelsCombo, normalizeCheck, loopCheck,
-                                                      nameEdit, folderEdit})
+                                                      trimCheck, nameEdit, folderEdit})
         w->setEnabled(!value);
     updateCrossfadeEnabled();
+    updateTrimEnabled();
     if (!value)
         updateState();
 }
@@ -617,6 +650,13 @@ void MainWindow::updateCrossfadeEnabled()
     const bool loopOn = !extracting && loopCheck->isChecked();
     crossfadeCheck->setEnabled(loopOn);
     crossfadeSpin->setEnabled(loopOn && crossfadeCheck->isChecked());
+}
+
+void MainWindow::updateTrimEnabled()
+{
+    const bool trimOn = !extracting && trimCheck->isChecked();
+    trimThresholdSpin->setEnabled(trimOn);
+    trimFadeSpin->setEnabled(trimOn);
 }
 
 void MainWindow::updateState()
@@ -658,6 +698,10 @@ void MainWindow::applyDefaults()
     crossfadeCheck->setChecked(false);
     crossfadeSpin->setValue(50);
     updateCrossfadeEnabled();
+    trimCheck->setChecked(false);
+    trimThresholdSpin->setValue(-50);
+    trimFadeSpin->setValue(10);
+    updateTrimEnabled();
     folderEdit->setText(QStandardPaths::writableLocation(QStandardPaths::MusicLocation) +
                         QStringLiteral("/NXSampler"));
 }

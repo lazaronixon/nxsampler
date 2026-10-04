@@ -53,6 +53,43 @@ void clamp(Channels& audio)
             sample = std::clamp(sample, -1.0f, 1.0f);
 }
 
+int64_t trimEnd(Channels& audio, float thresholdDb, int64_t fadeFrames)
+{
+    if (audio.empty())
+        return 0;
+    const auto frames = static_cast<int64_t>(audio.front().size());
+    const float maxValue = peak(audio);
+    if (maxValue <= 0.0f)
+        return frames;
+
+    // The threshold is relative to this sample's own peak.
+    const float limit = maxValue * std::pow(10.0f, thresholdDb / 20.0f);
+    int64_t lastLoud = 0;
+    for (const auto& channel : audio)
+        for (int64_t i = frames - 1; i > lastLoud; --i)
+            if (std::fabs(channel[static_cast<size_t>(i)]) > limit)
+            {
+                lastLoud = i;
+                break;
+            }
+
+    // Keep `fadeFrames` of the quiet tail after the sound and fade that out, so the
+    // fade does not eat into the sound itself.
+    const int64_t end = std::min(frames, lastLoud + 1 + std::max<int64_t>(0, fadeFrames));
+    const int64_t fadeLength = std::min(std::max<int64_t>(0, fadeFrames), end);
+    for (auto& channel : audio)
+    {
+        for (int64_t i = 0; i < fadeLength; ++i)
+        {
+            // Gain falls from just under 1 to exactly 0 at the last frame.
+            const float gain = static_cast<float>(fadeLength - 1 - i) / static_cast<float>(fadeLength);
+            channel[static_cast<size_t>(end - fadeLength + i)] *= gain;
+        }
+        channel.resize(static_cast<size_t>(end));
+    }
+    return end;
+}
+
 std::vector<uint8_t> toPcm(const Channels& audio, int bitsPerSample)
 {
     if (bitsPerSample != 8 && bitsPerSample != 16)

@@ -43,6 +43,51 @@ private slots:
         QCOMPARE(audio[0][2], 0.3f);
     }
 
+    void trimCutsQuietTailAfterFade()
+    {
+        // Loud for 1000 frames, then a tail at -60 dB below the peak.
+        Channels audio = {std::vector<float>(5000, 0.001f)};
+        std::fill_n(audio[0].begin(), 1000, 1.0f);
+        const int64_t length = AudioOps::trimEnd(audio, -50.0f, 100);
+        QCOMPARE(length, int64_t(1100));
+        QCOMPARE(audio[0].size(), size_t(1100));
+        QCOMPARE(audio[0][999], 1.0f);                         // the sound itself is untouched
+        QCOMPARE(audio[0][1099], 0.0f);                        // fades to exactly zero
+        QVERIFY(audio[0][1050] < audio[0][1000]);              // and ramps down on the way
+    }
+
+    void trimThresholdIsRelativeToPeak()
+    {
+        Channels loud = {std::vector<float>(5000, 0.001f)};
+        std::fill_n(loud[0].begin(), 1000, 1.0f);
+        Channels quiet = loud;
+        for (float& sample : quiet[0])
+            sample *= 0.5f;
+        QCOMPARE(AudioOps::trimEnd(loud, -50.0f, 10), AudioOps::trimEnd(quiet, -50.0f, 10));
+    }
+
+    void trimKeepsSoundThatLastsToTheEnd()
+    {
+        Channels audio = {std::vector<float>(2000, 0.8f)};
+        QCOMPARE(AudioOps::trimEnd(audio, -50.0f, 100), int64_t(2000));
+        QCOMPARE(audio[0].back(), 0.0f); // still faded so the end is clean
+    }
+
+    void trimLeavesSilenceAlone()
+    {
+        Channels audio = {std::vector<float>(2000, 0.0f)};
+        QCOMPARE(AudioOps::trimEnd(audio, -50.0f, 100), int64_t(2000));
+    }
+
+    void trimUsesTheLongerChannel()
+    {
+        Channels audio = {std::vector<float>(5000, 0.0f), std::vector<float>(5000, 0.0f)};
+        std::fill_n(audio[0].begin(), 500, 1.0f);
+        std::fill_n(audio[1].begin(), 3000, 1.0f);
+        QCOMPARE(AudioOps::trimEnd(audio, -50.0f, 0), int64_t(3000));
+        QCOMPARE(audio[0].size(), size_t(3000));
+    }
+
     void pcm16IsSignedLittleEndianInterleaved()
     {
         const Channels audio = {{1.0f, 0.0f}, {-1.0f, 0.5f}};

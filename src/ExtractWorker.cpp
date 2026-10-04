@@ -86,8 +86,14 @@ void ExtractWorker::run()
         if (silent)
             errors.append(QStringLiteral("Key %1: the instrument produced silence.").arg(key));
 
+        // Auto Trim is for one-shots: when it is on, the file is trimmed and not looped,
+        // even if Auto Loop is also ticked.
+        if (settings.trim && !silent)
+            AudioOps::trimEnd(audio, static_cast<float>(settings.trimThresholdDb),
+                              static_cast<int64_t>(settings.trimFadeMs) * settings.sampleRate / 1000);
+
         std::optional<LoopPoints> loop;
-        if (settings.loop && !silent)
+        if (settings.loop && !settings.trim && !silent)
         {
             loop = LoopFinder::find(audio, settings.sampleRate);
             if (!loop)
