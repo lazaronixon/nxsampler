@@ -53,6 +53,7 @@ private:
     QFormLayout* newForm(QWidget* box); // null box: a form to nest in another layout
     static QHBoxLayout* checkRow(QCheckBox* check, QWidget* extra = nullptr);
     static QGridLayout* newTwoColumnGrid(QWidget* box);
+    static QGridLayout* newOneColumnGrid(QWidget* box);
     // Adds "label: control" at a grid position; the label joins the shared label width.
     // A columnSpan of 4 makes the control run to the right edge of a two-column grid.
     void addGridSetting(QGridLayout* grid, int row, int column, const QString& text, QWidget* control,

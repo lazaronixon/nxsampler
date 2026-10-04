@@ -59,27 +59,28 @@ struct Preset
     bool loop;
     bool crossfade;
     bool trim;
+    int keyStep; // suggested key spacing shown in the menu (1 = every key); not applied
 };
 
 const Preset kPresets[] = {
     // Durations assume the plugin's modulation effects (rotary, phaser, chorus, LFO) are
     // off and added back on the keyboard, which keeps loops short for its 192 MB memory.
-    {"Piano", 3.0, true, true, false},
-    {"E. Piano", 3.0, true, true, false},
-    {"Mallet & Bell", 4.0, false, false, true}, // mallets and bells fade naturally: one-shots
-    {"Accordion", 3.0, true, true, false},
-    {"Organ", 2.0, true, true, false},
-    {"Guitar", 3.0, true, true, false},
-    {"Strings & Vocal", 3.0, true, true, false},
-    {"Trumpet & Trbn.", 2.0, true, true, false},
-    {"Brass", 2.0, true, true, false},
-    {"Sax", 2.0, true, true, false},
-    {"Woodwind", 2.0, true, true, false},
-    {"Synth Pad", 4.0, true, true, false},
-    {"Synth Lead", 2.0, true, true, false},
-    {"Ethnic", 3.0, true, true, false},
-    {"Bass", 2.0, true, true, false},
-    {"Drum & SFX", 5.0, false, false, true}, // one-shots: trimmed, not looped
+    {"Piano", 3.0, true, true, false, 3},
+    {"E. Piano", 3.0, true, true, false, 3},
+    {"Mallet & Bell", 4.0, false, false, true, 3}, // mallets and bells fade naturally: one-shots
+    {"Accordion", 3.0, true, true, false, 3},
+    {"Organ", 2.0, true, true, false, 4},
+    {"Guitar", 3.0, true, true, false, 3},
+    {"Strings & Vocal", 3.0, true, true, false, 3},
+    {"Trumpet & Trbn.", 2.0, true, true, false, 3},
+    {"Brass", 2.0, true, true, false, 3},
+    {"Sax", 2.0, true, true, false, 3},
+    {"Woodwind", 2.0, true, true, false, 3},
+    {"Synth Pad", 4.0, true, true, false, 3},
+    {"Synth Lead", 2.0, true, true, false, 4},
+    {"Ethnic", 3.0, true, true, false, 3},
+    {"Bass", 2.0, true, true, false, 4},
+    {"Drum & SFX", 5.0, false, false, true, 1}, // one-shots: trimmed, not looped; every kit key
 };
 
 class WaitCursor
@@ -102,8 +103,10 @@ MainWindow::MainWindow()
     layout->addWidget(buildKeyboardBox());
     layout->addWidget(buildPresetsBox());
     layout->addWidget(buildSettingsBox());
-    layout->addWidget(buildLoopBox());
-    layout->addWidget(buildTrimBox());
+    auto* loopAndTrim = new QHBoxLayout; // Auto Loop and Auto Trim side by side
+    loopAndTrim->addWidget(buildLoopBox(), 1);
+    loopAndTrim->addWidget(buildTrimBox(), 1);
+    layout->addLayout(loopAndTrim);
     layout->addWidget(buildOutputBox());
     alignFormLabels();
     matchDropdownPadding({nameEdit, folderEdit, durationSpin, crossfadeSpin, trimThresholdSpin, trimFadeSpin});
@@ -219,7 +222,13 @@ QWidget* MainWindow::buildPresetsBox()
 
     presetCombo = new QComboBox;
     for (int i = 0; i < static_cast<int>(std::size(kPresets)); ++i)
-        presetCombo->addItem(tr(kPresets[i].name), i);
+    {
+        const Preset& preset = kPresets[i];
+        const QString spacing = preset.keyStep == 1 ? tr("sample every key")
+                                : preset.keyStep == 3 ? tr("sample every 3rd key")
+                                                      : tr("sample every %1th key").arg(preset.keyStep);
+        presetCombo->addItem(QStringLiteral("%1  ·  %2").arg(tr(preset.name), spacing), i);
+    }
     presetCombo->setToolTip(tr("Fills in Duration, Auto Loop, Crossfade and Auto Trim "
                                "for this kind of sound."));
     addGridSetting(grid, 0, 0, tr("Category:"), presetCombo, nullptr, 4); // full width
@@ -290,7 +299,7 @@ QWidget* MainWindow::buildSettingsBox()
 QWidget* MainWindow::buildLoopBox()
 {
     auto* box = new QGroupBox(tr("Auto Loop"));
-    QGridLayout* grid = newTwoColumnGrid(box);
+    QGridLayout* grid = newOneColumnGrid(box);
 
     loopCheck = new QCheckBox;
     loopCheck->setToolTip(tr("Find the most seamless loop in each note and store it in the WAV file."));
@@ -305,18 +314,19 @@ QWidget* MainWindow::buildLoopBox()
                                     "for a smoother loop. Length as a percentage of the loop.");
     crossfadeCheck->setToolTip(crossfadeTip);
     crossfadeSpin->setToolTip(crossfadeTip);
-    addGridSetting(grid, 0, 3, tr("Crossfade:"), nullptr, checkRow(crossfadeCheck, crossfadeSpin));
+    addGridSetting(grid, 1, 0, tr("Crossfade:"), nullptr, checkRow(crossfadeCheck, crossfadeSpin));
 
     connect(loopCheck, &QCheckBox::toggled, this, &MainWindow::updateCrossfadeEnabled);
     connect(crossfadeCheck, &QCheckBox::toggled, this, &MainWindow::updateCrossfadeEnabled);
 
+    grid->setRowStretch(grid->rowCount(), 1); // keep rows at the top when Auto Trim is taller
     return box;
 }
 
 QWidget* MainWindow::buildTrimBox()
 {
     auto* box = new QGroupBox(tr("Auto Trim"));
-    QGridLayout* grid = newTwoColumnGrid(box);
+    QGridLayout* grid = newOneColumnGrid(box);
 
     trimCheck = new QCheckBox;
     trimCheck->setToolTip(tr("Cut the silence at the end of each note, for one-shots like drums "
@@ -327,14 +337,14 @@ QWidget* MainWindow::buildTrimBox()
     trimThresholdSpin->setRange(-120, -1);
     trimThresholdSpin->setSuffix(tr(" dB"));
     trimThresholdSpin->setToolTip(tr("Cut where the sound falls this far below its own loudest point."));
-    addGridSetting(grid, 0, 3, tr("Threshold:"), trimThresholdSpin);
+    addGridSetting(grid, 1, 0, tr("Threshold:"), trimThresholdSpin);
 
     trimFadeSpin = new QSpinBox;
     trimFadeSpin->setRange(0, 1000);
     trimFadeSpin->setSingleStep(5);
     trimFadeSpin->setSuffix(tr(" ms"));
     trimFadeSpin->setToolTip(tr("Fade-out added at the cut, so the end of the file doesn't click."));
-    addGridSetting(grid, 1, 3, tr("Fade out:"), trimFadeSpin);
+    addGridSetting(grid, 2, 0, tr("Fade out:"), trimFadeSpin);
 
     connect(trimCheck, &QCheckBox::toggled, this, &MainWindow::updateTrimEnabled);
 
@@ -362,6 +372,15 @@ QHBoxLayout* MainWindow::checkRow(QCheckBox* check, QWidget* extra)
     else
         row->addStretch();
     return row;
+}
+
+QGridLayout* MainWindow::newOneColumnGrid(QWidget* box)
+{
+    // A single label + control column, for the half-width panels.
+    auto* grid = new QGridLayout(box);
+    grid->setVerticalSpacing(4);
+    grid->setColumnStretch(1, 1);
+    return grid;
 }
 
 QGridLayout* MainWindow::newTwoColumnGrid(QWidget* box)
@@ -787,7 +806,18 @@ void MainWindow::showEvent(QShowEvent* event)
 }
 
 void MainWindow::alignStatusBar()
-{    // Line the status bar text up with the panels above. The status bar adds its own
+{
+    // Auto Trim sits in the right half; shift its contents so its checkbox and fields
+    // start exactly where Sample settings' right column does (Normalize's checkbox).
+    if (QLayout* trimLayout = trimCheck->parentWidget()->layout())
+    {
+        trimLayout->activate();
+        QMargins margins = trimLayout->contentsMargins();
+        const int delta = normalizeCheck->mapTo(this, QPoint(0, 0)).x() - trimCheck->mapTo(this, QPoint(0, 0)).x();
+        margins.setLeft(std::max(0, margins.left() + delta));
+        trimLayout->setContentsMargins(margins);
+    }
+    // Line the status bar text up with the panels above. The status bar adds its own
     // spacing, which depends on the style, so measure instead of guessing.
     const QMargins content = centralWidget()->layout()->contentsMargins();
 
