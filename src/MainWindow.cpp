@@ -62,19 +62,21 @@ struct Preset
 };
 
 const Preset kPresets[] = {
+    // Durations assume the plugin's modulation effects (rotary, phaser, chorus, LFO) are
+    // off and added back on the keyboard, which keeps loops short for its 192 MB memory.
     {"Piano", 3.0, true, true, false},
-    {"E. Piano", 4.0, true, true, false},
-    {"Mallet & Bell", 5.0, false, false, true}, // mallets and bells fade naturally: one-shots
+    {"E. Piano", 3.0, true, true, false},
+    {"Mallet & Bell", 4.0, false, false, true}, // mallets and bells fade naturally: one-shots
     {"Accordion", 3.0, true, true, false},
-    {"Organ", 4.0, true, true, false},
+    {"Organ", 2.0, true, true, false},
     {"Guitar", 3.0, true, true, false},
-    {"Strings & Vocal", 4.0, true, true, false},
-    {"Trumpet & Trbn.", 3.0, true, true, false},
-    {"Brass", 3.0, true, true, false},
-    {"Sax", 3.0, true, true, false},
-    {"Woodwind", 3.0, true, true, false},
-    {"Synth Pad", 5.0, true, true, false},
-    {"Synth Lead", 3.0, true, true, false},
+    {"Strings & Vocal", 3.0, true, true, false},
+    {"Trumpet & Trbn.", 2.0, true, true, false},
+    {"Brass", 2.0, true, true, false},
+    {"Sax", 2.0, true, true, false},
+    {"Woodwind", 2.0, true, true, false},
+    {"Synth Pad", 4.0, true, true, false},
+    {"Synth Lead", 2.0, true, true, false},
     {"Ethnic", 3.0, true, true, false},
     {"Bass", 2.0, true, true, false},
     {"Drum & SFX", 5.0, false, false, true}, // one-shots: trimmed, not looped

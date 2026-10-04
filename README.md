@@ -71,24 +71,32 @@ release.
 
 The 16 factory sound categories of the Korg Pa3X keyboards:
 
-| Category | Duration | Auto Loop | Crossfade | Auto Trim |
-|---|---|---|---|---|
-| Piano | 3 s | on | on | off |
-| E. Piano | 4 s | on | on | off |
-| Mallet & Bell | 5 s | off | off | on |
-| Accordion | 3 s | on | on | off |
-| Organ | 4 s | on | on | off |
-| Guitar | 3 s | on | on | off |
-| Strings & Vocal | 4 s | on | on | off |
-| Trumpet & Trbn. | 3 s | on | on | off |
-| Brass | 3 s | on | on | off |
-| Sax | 3 s | on | on | off |
-| Woodwind | 3 s | on | on | off |
-| Synth Pad | 5 s | on | on | off |
-| Synth Lead | 3 s | on | on | off |
-| Ethnic | 3 s | on | on | off |
-| Bass | 2 s | on | on | off |
-| Drum & SFX | 5 s | off | off | on |
+| Category | Duration | Auto Loop | Crossfade | Auto Trim | Sample every | ≈ Size (mono) |
+|---|---|---|---|---|---|---|
+| Piano | 3 s | on | on | off | 3rd key | 5.6 MB |
+| E. Piano | 3 s | on | on | off | 3rd key | 5.6 MB |
+| Mallet & Bell | 4 s | off | off | on | 3rd key | ~2–4 MB |
+| Accordion | 3 s | on | on | off | 3rd key | 5.6 MB |
+| Organ | 2 s | on | on | off | 4th key | 2.8 MB |
+| Guitar | 3 s | on | on | off | 3rd key | 5.6 MB |
+| Strings & Vocal | 3 s | on | on | off | 3rd key | 5.6 MB |
+| Trumpet & Trbn. | 2 s | on | on | off | 3rd key | 3.7 MB |
+| Brass | 2 s | on | on | off | 3rd key | 3.7 MB |
+| Sax | 2 s | on | on | off | 3rd key | 3.7 MB |
+| Woodwind | 2 s | on | on | off | 3rd key | 3.7 MB |
+| Synth Pad | 4 s | on | on | off | 3rd key | 7.4 MB |
+| Synth Lead | 2 s | on | on | off | 4th key | 2.8 MB |
+| Ethnic | 3 s | on | on | off | 3rd key | 5.6 MB |
+| Bass | 2 s | on | on | off | 4th key | 2.8 MB |
+| Drum & SFX | 5 s | off | off | on | every key (kit range) | ~2–5 MB |
+
+The values are chosen to fit the Pa3X's 192 MB of sample memory: about 25–30 sounds come
+to roughly 110–130 MB. Sizes assume 61 keys, Mono, 44.1 kHz and 16-bit. "Sample every" is
+advice for selecting keys; presets don't select keys.
+
+**Before sampling, turn off the plugin's modulation effects and reverb** (rotary, phaser,
+chorus, tremolo, LFO vibrato, delay, reverb) and use the Pa3X's own effects instead. The
+sound then stays steady while held, so the short durations above still loop cleanly.
 
 Short, percussive sounds inside a looped category (muted guitars, pizzicato and spiccato
 strings, harp, scat voices, brass falls and hits, synth stabs, sequences and arps) usually
