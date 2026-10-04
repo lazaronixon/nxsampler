@@ -59,28 +59,37 @@ struct Preset
     bool loop;
     bool crossfade;
     bool trim;
-    int keyStep; // suggested key spacing shown in the menu (1 = every key); not applied
+    int keyStep;  // selects every Nth key from firstKey to lastKey (1 = every key)
+    int firstKey;
+    int lastKey;
 };
+
+// The Pa3X Le's 61 keys, C2–C7.
+constexpr int kKeyboardLow = 36;
+constexpr int kKeyboardHigh = 96;
+// General MIDI drum map, from Acoustic Bass Drum to Open Triangle.
+constexpr int kDrumLow = 35;
+constexpr int kDrumHigh = 81;
 
 const Preset kPresets[] = {
     // Durations assume the plugin's modulation effects (rotary, phaser, chorus, LFO) are
     // off and added back on the keyboard, which keeps loops short for its 192 MB memory.
-    {"Piano", 3.0, true, true, false, 3},
-    {"E. Piano", 3.0, true, true, false, 3},
-    {"Mallet & Bell", 4.0, false, false, true, 3}, // mallets and bells fade naturally: one-shots
-    {"Accordion", 3.0, true, true, false, 3},
-    {"Organ", 2.0, true, true, false, 4},
-    {"Guitar", 3.0, true, true, false, 3},
-    {"Strings & Vocal", 3.0, true, true, false, 3},
-    {"Trumpet & Trbn.", 2.0, true, true, false, 3},
-    {"Brass", 2.0, true, true, false, 3},
-    {"Sax", 2.0, true, true, false, 3},
-    {"Woodwind", 2.0, true, true, false, 3},
-    {"Synth Pad", 4.0, true, true, false, 3},
-    {"Synth Lead", 2.0, true, true, false, 4},
-    {"Ethnic", 3.0, true, true, false, 3},
-    {"Bass", 2.0, true, true, false, 4},
-    {"Drum & SFX", 5.0, false, false, true, 1}, // one-shots: trimmed, not looped; every kit key
+    {"Piano", 3.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
+    {"E. Piano", 3.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
+    {"Mallet & Bell", 4.0, false, false, true, 3, kKeyboardLow, kKeyboardHigh}, // fade naturally: one-shots
+    {"Accordion", 3.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
+    {"Organ", 2.0, true, true, false, 4, kKeyboardLow, kKeyboardHigh},
+    {"Guitar", 3.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
+    {"Strings & Vocal", 3.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
+    {"Trumpet & Trbn.", 2.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
+    {"Brass", 2.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
+    {"Sax", 2.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
+    {"Woodwind", 2.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
+    {"Synth Pad", 4.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
+    {"Synth Lead", 2.0, true, true, false, 4, kKeyboardLow, kKeyboardHigh},
+    {"Ethnic", 3.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
+    {"Bass", 2.0, true, true, false, 4, kKeyboardLow, kKeyboardHigh},
+    {"Drum & SFX", 5.0, false, false, true, 1, kDrumLow, kDrumHigh}, // each kit key is a different drum
 };
 
 class WaitCursor
@@ -222,15 +231,9 @@ QWidget* MainWindow::buildPresetsBox()
 
     presetCombo = new QComboBox;
     for (int i = 0; i < static_cast<int>(std::size(kPresets)); ++i)
-    {
-        const Preset& preset = kPresets[i];
-        const QString spacing = preset.keyStep == 1 ? tr("sample every key")
-                                : preset.keyStep == 3 ? tr("sample every 3rd key")
-                                                      : tr("sample every %1th key").arg(preset.keyStep);
-        presetCombo->addItem(QStringLiteral("%1  ·  %2").arg(tr(preset.name), spacing), i);
-    }
-    presetCombo->setToolTip(tr("Fills in Duration, Auto Loop, Crossfade and Auto Trim "
-                               "for this kind of sound."));
+        presetCombo->addItem(tr(kPresets[i].name), i);
+    presetCombo->setToolTip(tr("Selects the keys to sample and fills in Duration, Auto Loop, "
+                               "Crossfade and Auto Trim for this kind of sound."));
     addGridSetting(grid, 0, 0, tr("Category:"), presetCombo, nullptr, 4); // full width
 
     connect(presetCombo, &QComboBox::currentIndexChanged, this, &MainWindow::applyPreset);
@@ -248,6 +251,11 @@ void MainWindow::applyPreset(int index)
     trimCheck->setChecked(preset.trim);
     updateCrossfadeEnabled();
     updateTrimEnabled();
+
+    QList<int> keys;
+    for (int key = preset.firstKey; key <= preset.lastKey; key += preset.keyStep)
+        keys.append(key);
+    keyboard->setSelectedKeys(keys);
 }
 
 QWidget* MainWindow::buildSettingsBox()

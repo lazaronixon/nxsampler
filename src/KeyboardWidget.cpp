@@ -207,3 +207,13 @@ QList<int> KeyboardWidget::selectedKeys() const
             keys.append(key);
     return keys;
 }
+
+void KeyboardWidget::setSelectedKeys(const QList<int>& keys)
+{
+    selection.reset();
+    for (int key : keys)
+        if (key >= 0 && key < kKeyCount)
+            selection[static_cast<size_t>(key)] = true;
+    update();
+    emit selectionChanged();
+}

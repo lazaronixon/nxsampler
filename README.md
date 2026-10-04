@@ -56,11 +56,12 @@ release.
    `~/Library/Audio/Plug-Ins/VST3` on macOS, `C:\Program Files\Common Files\VST3` on
    Windows. The folders are scanned each time NXSampler starts, so restart it after
    installing new plugins.
-2. Select keys on the keyboard. Click toggles a key, dragging paints over several keys,
-   and Shift+click selects a range.
-3. In **Presets**, pick the sound's category. This fills in Duration, Auto Loop,
-   Crossfade and Auto Trim with good values for that kind of sound (see the table below);
-   you can still change any of them afterwards.
+2. In **Presets**, pick the sound's category. This selects the keys to sample and fills in
+   Duration, Auto Loop, Crossfade and Auto Trim with good values for that kind of sound
+   (see the table below).
+3. Adjust the keys on the keyboard if needed. Click toggles a key, dragging paints over
+   several keys, and Shift+click selects a range. Picking another preset replaces the
+   key selection.
 4. Pick the dynamics marking (ppp = velocity 16 up to fff = 127), then check the sample
    rate, bit depth, channels (Mono by default) and normalize, and set the name and output
    folder.
@@ -88,11 +89,15 @@ The 16 factory sound categories of the Korg Pa3X keyboards:
 | Synth Lead | 2 s | on | on | off | 4th key | 2.8 MB |
 | Ethnic | 3 s | on | on | off | 3rd key | 5.6 MB |
 | Bass | 2 s | on | on | off | 4th key | 2.8 MB |
-| Drum & SFX | 5 s | off | off | on | every key (kit range) | ~2–5 MB |
+| Drum & SFX | 5 s | off | off | on | every key, 35–81 | ~2–5 MB |
+
+The presets select keys across the Pa3X Le's 61 keys, C2–C7 (MIDI 36–96): every 3rd
+key is 36, 39, 42 … 96 (21 samples), and every 4th key is 36, 40, 44 … 96 (16 samples).
+Drum & SFX selects every key of the General MIDI drum map, 35–81 (47 keys), because in a
+kit every key is a different drum.
 
 The values are chosen to fit the Pa3X's 192 MB of sample memory: about 25–30 sounds come
-to roughly 110–130 MB. Sizes assume 61 keys, Mono, 44.1 kHz and 16-bit. "Sample every" is
-advice for selecting keys; presets don't select keys.
+to roughly 110–130 MB. Sizes assume Mono, 44.1 kHz and 16-bit.
 
 **Before sampling, turn off the plugin's modulation effects and reverb** (rotary, phaser,
 chorus, tremolo, LFO vibrato, delay, reverb) and use the Pa3X's own effects instead. The
