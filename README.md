@@ -41,7 +41,7 @@ ctest --test-dir build -C Release
 The first configure downloads the Steinberg VST3 SDK (MIT license).
 
 To publish a release, set the version in `CMakeLists.txt` (`project(NXSampler VERSION …)`)
-and push a matching tag (`git tag v0.0.1 && git push origin v0.0.1`).
+and push a matching tag (`git tag v0.0.2 && git push origin v0.0.2`).
 GitHub Actions builds and tests both platforms and attaches the `.dmg` and `.zip` to the
 release.
 

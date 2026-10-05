@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.28)
 # Homebrew's Qt 6 is built for macOS 14. Release builds pass their own value.
 set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0" CACHE STRING "Minimum macOS version")
 
-project(NXSampler VERSION 0.0.1 LANGUAGES C CXX)
+project(NXSampler VERSION 0.0.2 LANGUAGES C CXX)
 if(APPLE)
     enable_language(OBJC OBJCXX) # the SDK's macOS module loader is Objective-C++
 endif()
