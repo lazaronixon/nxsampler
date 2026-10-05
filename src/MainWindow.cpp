@@ -51,49 +51,6 @@ const Dynamic kDynamics[] = {
 
 constexpr int kDefaultVelocity = 96; // f
 
-// Recommended settings per Korg Pa3X factory sound category, in the keyboard's order.
-struct Preset
-{
-    const char* name;
-    double durationSec;
-    bool loop;
-    bool crossfade;
-    bool trim;
-    int keyStep;  // selects every Nth key from firstKey, always including lastKey (1 = every key)
-    int firstKey; // each range covers the real instruments in that factory bank
-    int lastKey;
-};
-
-// The Pa3X Le's 76 keys, E1–G7.
-constexpr int kKeyboardLow = 28;
-constexpr int kKeyboardHigh = 103;
-// Every key of a GM2/Korg drum kit (High Q to Open Surdo), beyond the core GM 35–81.
-// In a kit each key is a different drum, so an unsampled key would play the wrong drum.
-constexpr int kDrumLow = 27;
-constexpr int kDrumHigh = 87;
-
-const Preset kPresets[] = {
-    // Durations assume the plugin's modulation effects (rotary, phaser, chorus, LFO) are
-    // off and added back on the keyboard, which keeps loops short for its 192 MB memory.
-    {"Piano", 3.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
-    {"E. Piano", 3.0, true, true, false, 3, kKeyboardLow, kKeyboardHigh},
-    {"Mallet & Bell", 6.0, false, false, true, 3, 36, 96}, // C2–C7, marimba/vibes; one-shots, bells ring long
-    {"Accordion", 3.0, true, true, false, 3, 53, 93},      // F3–A6, the treble keyboard
-    {"Organ", 2.0, true, true, false, 4, kKeyboardLow, kKeyboardHigh},
-    {"Guitar", 3.0, true, true, false, 3, 40, 88}, // E2–E6
-    {"Strings & Vocal", 3.0, true, true, false, 3, kKeyboardLow, 96}, // E1–C7, contrabass to violin
-    {"Trumpet & Trbn.", 3.0, true, true, false, 3, 40, 84},          // E2–C6; 3 s: delayed vibrato
-    {"Brass", 2.0, true, true, false, 3, 40, 84},                    // E2–C6, sections
-    {"Sax", 3.0, true, true, false, 3, 37, 88},                      // C#2–E6; 3 s: delayed vibrato
-    {"Woodwind", 3.0, true, true, false, 3, 50, 96},                 // D3–C7, clarinet/oboe/flute; 3 s: vibrato
-    {"Synth Pad", 4.0, true, true, false, 4, kKeyboardLow, kKeyboardHigh}, // synthetic: every 4th key is enough
-    {"Synth Lead", 2.0, true, true, false, 4, 36, 103}, // C2–G7
-    {"Ethnic", 3.0, true, true, false, 3, 40, 93},      // E2–A6, oud to mandolin
-    {"Bass", 2.0, true, true, false, 4, 24, 72},        // C1–C5
-    // 10 s: only a limit, since Auto Trim cuts each sound to its own length; long SFX fit too.
-    {"Drum & SFX", 10.0, false, false, true, 1, kDrumLow, kDrumHigh}, // each kit key is a different drum
-};
-
 class WaitCursor
 {
 public:
@@ -112,7 +69,6 @@ MainWindow::MainWindow()
     auto* layout = new QVBoxLayout(central);
     layout->addWidget(buildInstrumentBox());
     layout->addWidget(buildKeyboardBox());
-    layout->addWidget(buildPresetsBox());
     layout->addWidget(buildSettingsBox());
     auto* loopAndTrim = new QHBoxLayout; // Auto Loop and Auto Trim side by side
     loopAndTrim->addWidget(buildLoopBox(), 1);
@@ -226,41 +182,6 @@ QWidget* MainWindow::buildKeyboardBox()
     return box;
 }
 
-QWidget* MainWindow::buildPresetsBox()
-{
-    auto* box = new QGroupBox(tr("Presets"));
-    QGridLayout* grid = newTwoColumnGrid(box);
-
-    presetCombo = new QComboBox;
-    for (int i = 0; i < static_cast<int>(std::size(kPresets)); ++i)
-        presetCombo->addItem(tr(kPresets[i].name), i);
-    presetCombo->setToolTip(tr("Selects the keys to sample and fills in Duration, Auto Loop, "
-                               "Crossfade and Auto Trim for this kind of sound."));
-    addGridSetting(grid, 0, 0, tr("Category:"), presetCombo, nullptr, 4); // full width
-
-    connect(presetCombo, &QComboBox::currentIndexChanged, this, &MainWindow::applyPreset);
-    return box;
-}
-
-void MainWindow::applyPreset(int index)
-{
-    if (index < 0 || index >= static_cast<int>(std::size(kPresets)))
-        return;
-    const Preset& preset = kPresets[index];
-    durationSpin->setValue(preset.durationSec);
-    loopCheck->setChecked(preset.loop);
-    crossfadeCheck->setChecked(preset.crossfade);
-    trimCheck->setChecked(preset.trim);
-    updateCrossfadeEnabled();
-    updateTrimEnabled();
-
-    QList<int> keys;
-    for (int key = preset.firstKey; key <= preset.lastKey; key += preset.keyStep)
-        keys.append(key);
-    if (keys.last() != preset.lastKey)
-        keys.append(preset.lastKey); // the top of the range always gets its own sample
-    keyboard->setSelectedKeys(keys);
-}
 
 QWidget* MainWindow::buildSettingsBox()
 {
@@ -408,15 +329,15 @@ QGridLayout* MainWindow::newTwoColumnGrid(QWidget* box)
 }
 
 void MainWindow::addGridSetting(QGridLayout* grid, int row, int column, const QString& text, QWidget* control,
-                                QLayout* controlLayout, int columnSpan)
+                                QLayout* controlLayout)
 {
     auto* label = new QLabel(text);
     alignedLabels.append(label);
     grid->addWidget(label, row, column, Qt::AlignRight | Qt::AlignVCenter);
     if (controlLayout)
-        grid->addLayout(controlLayout, row, column + 1, 1, columnSpan);
+        grid->addLayout(controlLayout, row, column + 1);
     else
-        grid->addWidget(control, row, column + 1, 1, columnSpan);
+        grid->addWidget(control, row, column + 1);
 }
 
 void MainWindow::matchDropdownPadding(std::initializer_list<QWidget*> inputs)
@@ -726,7 +647,7 @@ void MainWindow::setExtracting(bool value)
     // The plugin must not be touched from the UI while the worker renders with it.
     if (editor)
         editor->setEnabled(!value);
-    for (QWidget* w : std::initializer_list<QWidget*>{pluginCombo, loadButton, editorButton, presetCombo,
+    for (QWidget* w : std::initializer_list<QWidget*>{pluginCombo, loadButton, editorButton,
                                                       keyboard, dynamicsCombo, durationSpin, sampleRateCombo,
                                                       bitsCombo, channelsCombo, normalizeCheck, loopCheck,
                                                       trimCheck, nameEdit, folderEdit})
@@ -794,11 +715,6 @@ void MainWindow::applyDefaults()
     trimThresholdSpin->setValue(-60);
     trimFadeSpin->setValue(10);
     updateTrimEnabled();
-
-    // Start with the first preset (Piano). Selecting index 0 doesn't emit a change when it
-    // is already selected, so apply it explicitly.
-    presetCombo->setCurrentIndex(0);
-    applyPreset(0);
     folderEdit->setText(QStandardPaths::writableLocation(QStandardPaths::MusicLocation) +
                         QStringLiteral("/NXSampler"));
 }

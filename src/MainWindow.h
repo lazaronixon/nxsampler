@@ -44,8 +44,6 @@ protected:
 private:
     QWidget* buildInstrumentBox();
     QWidget* buildKeyboardBox();
-    QWidget* buildPresetsBox();
-    void applyPreset(int index);
     QWidget* buildSettingsBox();
     QWidget* buildLoopBox();
     QWidget* buildTrimBox();
@@ -55,9 +53,8 @@ private:
     static QGridLayout* newTwoColumnGrid(QWidget* box);
     static QGridLayout* newOneColumnGrid(QWidget* box);
     // Adds "label: control" at a grid position; the label joins the shared label width.
-    // A columnSpan of 4 makes the control run to the right edge of a two-column grid.
     void addGridSetting(QGridLayout* grid, int row, int column, const QString& text, QWidget* control,
-                        QLayout* controlLayout = nullptr, int columnSpan = 1);
+                        QLayout* controlLayout = nullptr);
     void alignFormLabels();
     static void matchDropdownPadding(std::initializer_list<QWidget*> inputs);
     QWidget* buildActionRow();
@@ -103,7 +100,6 @@ private:
     KeyboardWidget* keyboard = nullptr;
 
     // Settings
-    QComboBox* presetCombo = nullptr;   // item data = index into kPresets
     QComboBox* dynamicsCombo = nullptr; // item data = MIDI velocity
     QDoubleSpinBox* durationSpin = nullptr;
     QComboBox* channelsCombo = nullptr; // item data = channel count
